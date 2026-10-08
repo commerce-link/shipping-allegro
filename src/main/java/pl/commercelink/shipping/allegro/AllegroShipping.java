@@ -4,10 +4,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import pl.commercelink.rest.client.BinaryResponse;
 import pl.commercelink.rest.client.HttpClientException;
 import pl.commercelink.rest.client.RestApiWithRetry;
 import pl.commercelink.shipping.api.*;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -293,5 +295,145 @@ public class AllegroShipping implements ShippingProvider {
                     AllegroErrors.joined(status, "Allegro nie anulowało przesyłki."), List.of());
             default -> ShipmentCancellation.pending(commandId);
         };
+    }
+
+    private static final String LABEL = "/shipment-management/label";
+
+    @Override
+    public boolean supportsLabels() {
+        return true;
+    }
+
+    /**
+     * The file format (PDF or ZPL) was fixed when the shipment was created, so it is read from the shipment; the page
+     * size comes from the current settings (Allegro ignores it for ZPL).
+     */
+    @Override
+    public Label getLabel(String externalId) {
+        JsonNode shipment = read(SHIPMENTS + externalId);
+        boolean zpl = "ZPL".equals(AllegroJson.text(shipment, "labelFormat"));
+        ObjectNode body = AllegroJson.object();
+        body.putArray("shipmentIds").add(externalId);
+        body.put("pageSize", labelFormat.pageSize());
+        body.put("cutLine", false);
+        BinaryResponse response;
+        try {
+            response = api.postForBytes(LABEL, body, "application/octet-stream");
+        } catch (RuntimeException ex) {
+            throw AllegroErrors.failure(ex);
+        }
+        if (response == null || response.content() == null || response.content().length == 0) {
+            throw new ShippingException("Allegro nie ma jeszcze etykiety przesyłki " + externalId + ".");
+        }
+        String waybill = AllegroJson.text(shipment.path("packages").path(0), "waybill");
+        String name = "etykieta-" + (waybill == null ? externalId : waybill) + (zpl ? ".zpl" : ".pdf");
+        return new Label(response.content(), zpl ? "text/plain" : "application/pdf", name);
+    }
+
+    private static final String PICKUP_PROPOSALS = "/shipment-management/pickup-proposals";
+    private static final String PICKUP_COMMANDS = "/shipment-management/pickups/create-commands";
+
+    @Override
+    public boolean supportsPickups() {
+        return true;
+    }
+
+    /** Allegro needs the pickup address; the variants without it stay unsupported (the SPI default). */
+    @Override
+    public List<PickupWindow> pickupWindows(List<String> externalIds, ShipmentAddress pickup, LocalDate readyDate,
+                                            int daysAhead) {
+        ObjectNode body = AllegroJson.object();
+        externalIds.forEach(body.putArray("shipmentIds")::add);
+        body.put("readyDate", readyDate.toString());
+        body.set("address", AllegroShipmentInput.address(pickup));
+        JsonNode answer;
+        try {
+            answer = api.post(PICKUP_PROPOSALS, body);
+        } catch (RuntimeException ex) {
+            throw AllegroErrors.failure(ex);
+        }
+        return AllegroPickups.commonWindows(answer, externalIds, readyDate.plusDays(daysAhead));
+    }
+
+    @Override
+    public PickupOrder orderPickup(List<String> externalIds, ShipmentAddress pickup, PickupWindow window, String commandId) {
+        String[] times = AllegroPickups.times(window);
+        ObjectNode command = AllegroJson.object();
+        command.put("commandId", commandId);
+        ObjectNode input = command.putObject("input");
+        externalIds.forEach(input.putArray("shipmentIds")::add);
+        ObjectNode pickupTime = input.putObject("pickupTime");
+        pickupTime.put("date", times[0]);
+        pickupTime.put("minTime", times[1]);
+        pickupTime.put("maxTime", times[2]);
+        input.set("address", AllegroShipmentInput.address(pickup));
+        try {
+            api.post(PICKUP_COMMANDS, command);
+        } catch (HttpClientException ex) {
+            // 409: the same command id was accepted before (a retry of an answer we lost); refusing would invite a second pickup
+            if (ex.getStatusCode() == 409) {
+                log.info("Allegro pickup command {} already exists", commandId);
+                return PickupOrder.pending(commandId);
+            }
+            if (AllegroErrors.isClientError(ex)) {
+                throw AllegroErrors.exception(ex);
+            }
+            log.warn("Allegro pickup command {} has an unknown outcome: HTTP {}", commandId, ex.getStatusCode());
+        } catch (RuntimeException ex) {
+            log.warn("Allegro pickup command {} has an unknown outcome: {}", commandId, ex.getMessage());
+        }
+        return PickupOrder.pending(commandId);
+    }
+
+    /** A successful pickup covers every shipment of the command (empty list); the carrier's number is shown. */
+    @Override
+    public PickupOrder checkPickupOrder(String commandId) {
+        JsonNode status;
+        try {
+            status = api.get(PICKUP_COMMANDS + "/" + commandId);
+        } catch (HttpClientException ex) {
+            if (ex.getStatusCode() == 404) {
+                log.warn("Allegro pickup command {} is not known yet; still pending", commandId);
+                return PickupOrder.pending(commandId);
+            }
+            throw AllegroErrors.exception(ex);
+        }
+        return switch (String.valueOf(AllegroJson.text(status, "status"))) {
+            case "SUCCESS" -> {
+                String carrierPickupId = AllegroJson.text(status, "carrierPickupId");
+                yield PickupOrder.succeeded(commandId,
+                        carrierPickupId != null ? carrierPickupId : AllegroJson.text(status, "pickupId"), List.of());
+            }
+            case "ERROR" -> PickupOrder.failed(commandId, AllegroErrors.joined(status, "Allegro nie zamówiło odbioru."));
+            default -> PickupOrder.pending(commandId);
+        };
+    }
+
+    @Override
+    public boolean supportsParcelTracking() {
+        return true;
+    }
+
+    /** No webhooks in Allegro: the application polls {@link #getTrackingEvents}. Foreign waybills are not tracked. */
+    @Override
+    public boolean supportsTrackingPolling() {
+        return true;
+    }
+
+    @Override
+    public List<TrackingEvent> getTrackingEvents(String externalId) {
+        JsonNode shipment = read(SHIPMENTS + externalId);
+        String carrier = AllegroJson.text(shipment, "carrier");
+        String waybill = AllegroJson.text(shipment.path("packages").path(0), "waybill");
+        if (carrier == null || waybill == null) {
+            return List.of();
+        }
+        JsonNode answer;
+        try {
+            answer = api.get("/order/carriers/" + carrier + "/tracking", Map.of("waybill", waybill));
+        } catch (RuntimeException ex) {
+            throw AllegroErrors.failure(ex);
+        }
+        return AllegroTracking.events(answer, waybill);
     }
 }

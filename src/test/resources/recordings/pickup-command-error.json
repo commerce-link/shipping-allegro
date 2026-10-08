@@ -1,0 +1,1 @@
+{"commandId":"pickup-1","status":"ERROR","errors":[{"code":"PICKUP_NOT_AVAILABLE","message":"Pickup not available","userMessage":"Przewoźnik nie przyjmie odbioru w wybranym terminie"}],"pickupId":null,"carrierPickupId":null}
