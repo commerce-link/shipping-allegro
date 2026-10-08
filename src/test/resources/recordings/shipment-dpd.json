@@ -1,0 +1,9 @@
+{"id":"9a1b2c3d-1111-4e5f-8a9b-0c1d2e3f4a5b","deliveryMethodId":"c3066682-97a3-42fe-9eb5-3beeccab840c",
+ "receiver":{"name":"Anna Kupująca","street":"Testowa 5","postalCode":"55-555","city":"Wrocław","countryCode":"PL",
+             "email":"8x7k2m+abc123@allegromail.pl","phone":"500600701","point":null},
+ "referenceNumber":"CL-1001",
+ "packages":[{"waybill":"0000889416460Q","type":"PACKAGE","length":{"value":30,"unit":"CENTIMETER"},
+              "width":{"value":20,"unit":"CENTIMETER"},"height":{"value":10,"unit":"CENTIMETER"},
+              "weight":{"value":2,"unit":"KILOGRAMS"},"transportingInfo":[]}],
+ "createdDate":"2026-10-08T09:12:00Z","canceledDate":null,"carrier":"DPD","labelFormat":"PDF",
+ "transport":[],"pickupAvailable":true}

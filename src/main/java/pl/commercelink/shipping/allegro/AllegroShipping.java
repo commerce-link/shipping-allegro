@@ -1,12 +1,14 @@
 package pl.commercelink.shipping.allegro;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import pl.commercelink.rest.client.HttpClientException;
 import pl.commercelink.rest.client.RestApiWithRetry;
 import pl.commercelink.shipping.api.*;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -127,18 +129,146 @@ public class AllegroShipping implements ShippingProvider {
         return List.of();
     }
 
+    static final String ONE_PACKAGE = "Wysyłam z Allegro: jedna paczka na przesyłkę — każdy karton nadaj osobno.";
+
+    private static final String CREATE_COMMANDS = "/shipment-management/shipments/create-commands";
+    private static final String SHIPMENTS = "/shipment-management/shipments/";
+
+    /**
+     * Starts creating the shipment under the caller's command id. Allegro's shipment id is known only once the command
+     * succeeds, so the answer is PENDING without externalId. Everything checked before the command (order, one
+     * package, limits, the method) is a refusal; after the command a 4xx is a refusal and anything else an unknown
+     * outcome left to {@link #checkShipmentCreation}.
+     */
     @Override
     public ShipmentCreation createShipment(ShipmentRequest request, String commandId) {
-        throw new UnsupportedOperationException("Implemented in Task 4");
+        if (request.orderReference() == null || request.orderReference().externalOrderId() == null) {
+            throw new ShippingException("Wysyłam z Allegro nadaje tylko zamówienia z Allegro: brak numeru zamówienia Allegro.");
+        }
+        if (request.parcels().size() != 1) {
+            throw new ShippingException(ONE_PACKAGE);
+        }
+        ObjectNode input = AllegroShipmentInput.of(proposalForCreation(request), request, labelFormat);
+        ObjectNode command = AllegroJson.object();
+        command.put("commandId", commandId);
+        command.set("input", input);
+        try {
+            api.post(CREATE_COMMANDS, command);
+        } catch (HttpClientException ex) {
+            if (AllegroErrors.isClientError(ex)) {
+                throw AllegroErrors.exception(ex);
+            }
+            log.warn("Allegro create command {} has an unknown outcome: HTTP {}", commandId, ex.getStatusCode());
+        } catch (RuntimeException ex) {
+            log.warn("Allegro create command {} has an unknown outcome: {}", commandId, ex.getMessage());
+        }
+        return ShipmentCreation.pending(commandId, null);
+    }
+
+    /** Nothing is sent before this read, so every failure of it is a refusal the operator may simply retry. */
+    private JsonNode proposalForCreation(ShipmentRequest request) {
+        String orderId = request.orderReference().externalOrderId();
+        try {
+            return api.get(PROPOSALS + orderId);
+        } catch (HttpClientException ex) {
+            if (AllegroErrors.hasCode(ex, "UNSUPPORTED_DELIVERY_METHOD")) {
+                throw new ShippingException(UNSUPPORTED_METHOD, ex, List.of(UNSUPPORTED_METHOD));
+            }
+            if (AllegroErrors.isClientError(ex)) {
+                throw AllegroErrors.exception(ex);
+            }
+            log.warn("Allegro did not answer the delivery proposal of order {}: HTTP {}", orderId, ex.getStatusCode());
+            throw new ShippingException("Allegro nie odpowiedziało przed nadaniem (HTTP " + ex.getStatusCode()
+                    + ") — nic nie zostało nadane, spróbuj ponownie.");
+        } catch (RuntimeException ex) {
+            log.warn("Allegro did not answer the delivery proposal of order {}", orderId, ex);
+            throw new ShippingException("Allegro nie odpowiedziało przed nadaniem — nic nie zostało nadane, spróbuj ponownie.");
+        }
     }
 
     @Override
     public ShipmentCreation checkShipmentCreation(String commandId, String externalId) {
-        throw new UnsupportedOperationException("Implemented in Task 4");
+        JsonNode status;
+        try {
+            status = api.get(CREATE_COMMANDS + "/" + commandId);
+        } catch (HttpClientException ex) {
+            if (ex.getStatusCode() == 404) {
+                // a command sent without an answer may still be saved: failing it would invite a second paid shipment
+                log.warn("Allegro create command {} is not known yet; still pending", commandId);
+                return ShipmentCreation.pending(commandId, externalId);
+            }
+            throw AllegroErrors.exception(ex);
+        }
+        return switch (String.valueOf(AllegroJson.text(status, "status"))) {
+            case "SUCCESS" -> created(commandId, AllegroJson.text(status, "shipmentId"));
+            case "ERROR" -> ShipmentCreation.failed(commandId, externalId,
+                    AllegroErrors.joined(status, "Allegro nie utworzyło przesyłki."));
+            default -> ShipmentCreation.pending(commandId, externalId);
+        };
+    }
+
+    /** The shipment of a successful command; its waybill may come a moment later, which is still PENDING. */
+    private ShipmentCreation created(String commandId, String shipmentId) {
+        if (shipmentId == null) {
+            return ShipmentCreation.pending(commandId, null);
+        }
+        JsonNode shipment = read(SHIPMENTS + shipmentId);
+        String carrier = AllegroJson.text(shipment, "carrier");
+        boolean pickupAvailable = shipment.path("pickupAvailable").asBoolean(false);
+        List<ShipmentResult.ShipmentParcelResult> parcels = new ArrayList<>();
+        for (JsonNode pkg : shipment.path("packages")) {
+            String waybill = AllegroJson.text(pkg, "waybill");
+            if (waybill == null) {
+                return ShipmentCreation.pending(commandId, shipmentId);
+            }
+            // One by Allegro (carrier ALLEGRO) shipments cannot be cancelled: Allegro's rule
+            parcels.add(new ShipmentResult.ShipmentParcelResult(waybill, carrier, null, pickupAvailable, null,
+                    !"ALLEGRO".equals(carrier)));
+        }
+        if (parcels.isEmpty()) {
+            return ShipmentCreation.pending(commandId, shipmentId);
+        }
+        return ShipmentCreation.succeeded(commandId, new ShipmentResult(shipmentId, parcels, null));
+    }
+
+    private static final String CANCEL_COMMANDS = "/shipment-management/shipments/cancel-commands";
+
+    /** Allegro refuses to cancel One by Allegro shipments and anything already picked up: those come back FAILED. */
+    @Override
+    public ShipmentCancellation cancelShipment(String externalId, String commandId) {
+        ObjectNode command = AllegroJson.object();
+        command.put("commandId", commandId);
+        command.putObject("input").put("shipmentId", externalId);
+        try {
+            api.post(CANCEL_COMMANDS, command);
+        } catch (HttpClientException ex) {
+            if (AllegroErrors.isClientError(ex)) {
+                throw AllegroErrors.exception(ex);
+            }
+            log.warn("Allegro cancel command {} has an unknown outcome: HTTP {}", commandId, ex.getStatusCode());
+        } catch (RuntimeException ex) {
+            log.warn("Allegro cancel command {} has an unknown outcome: {}", commandId, ex.getMessage());
+        }
+        return ShipmentCancellation.pending(commandId);
     }
 
     @Override
-    public ShipmentCancellation cancelShipment(String externalId, String commandId) {
-        throw new UnsupportedOperationException("Implemented in Task 4");
+    public ShipmentCancellation checkShipmentCancellation(String commandId, String externalId) {
+        JsonNode status;
+        try {
+            status = api.get(CANCEL_COMMANDS + "/" + commandId);
+        } catch (HttpClientException ex) {
+            if (ex.getStatusCode() == 404) {
+                log.warn("Allegro cancel command {} is not known yet; still pending", commandId);
+                return ShipmentCancellation.pending(commandId);
+            }
+            throw AllegroErrors.exception(ex);
+        }
+        return switch (String.valueOf(AllegroJson.text(status, "status"))) {
+            case "SUCCESS" -> ShipmentCancellation.succeeded(commandId, List.of());
+            case "ERROR" -> ShipmentCancellation.failed(commandId,
+                    AllegroErrors.joined(status, "Allegro nie anulowało przesyłki."), List.of());
+            default -> ShipmentCancellation.pending(commandId);
+        };
     }
 }
