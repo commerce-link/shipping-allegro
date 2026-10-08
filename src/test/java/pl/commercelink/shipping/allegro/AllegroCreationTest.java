@@ -158,7 +158,9 @@ class AllegroCreationTest {
         ShipmentRequest request = request(parcel(100)).orderReference(null).build();
 
         // when / then
-        assertThrows(ShippingException.class, () -> allegro(AllegroLabelFormat.PDF_A6).createShipment(request, "cmd-1"));
+        ShippingException e = assertThrows(ShippingException.class,
+                () -> allegro(AllegroLabelFormat.PDF_A6).createShipment(request, "cmd-1"));
+        assertNull(e.getCause());
         verifyNoInteractions(restApi);
     }
 
@@ -256,6 +258,21 @@ class AllegroCreationTest {
     }
 
     @Test
+    void commandAlreadyKnownToAllegroStaysPendingInsteadOfBeingRefused() {
+        // given
+        proposal("delivery-proposal-dpd.json");
+        when(restApi.postWithAuthRetry(eq(CREATE), any(), anyMap(), eq(JsonNode.class)))
+                .thenThrow(new HttpClientException(409, "{\"errors\":[{\"code\":\"CONFLICT\"}]}"));
+
+        // when
+        ShipmentCreation started = allegro(AllegroLabelFormat.PDF_A6).createShipment(request(parcel(100)).build(), "cmd-1");
+
+        // then
+        assertEquals(CommandStatus.PENDING, started.status());
+        assertEquals("cmd-1", started.commandId());
+    }
+
+    @Test
     void commandWithoutAnswerStaysPending() {
         // given
         proposal("delivery-proposal-dpd.json");
@@ -342,6 +359,22 @@ class AllegroCreationTest {
         assertEquals("ALLEGRO", parcel.carrier());
         assertFalse(parcel.cancellable());
         assertFalse(parcel.pickupRequired());
+    }
+
+    @Test
+    void shipmentNotReadableYetAfterASuccessfulCommandIsPendingWithItsId() {
+        // given
+        when(restApi.fetchWithAuthRetry(eq(CREATE + "/cmd-1"), anyMap(), anyMap(), eq(JsonNode.class)))
+                .thenReturn(Recordings.json("create-command-success.json"));
+        when(restApi.fetchWithAuthRetry(eq("/shipment-management/shipments/" + SHIPMENT), anyMap(), anyMap(), eq(JsonNode.class)))
+                .thenThrow(new HttpClientException(404, ""));
+
+        // when
+        ShipmentCreation check = allegro(AllegroLabelFormat.PDF_A6).checkShipmentCreation("cmd-1", null);
+
+        // then
+        assertEquals(CommandStatus.PENDING, check.status());
+        assertEquals(SHIPMENT, check.externalId());
     }
 
     @Test

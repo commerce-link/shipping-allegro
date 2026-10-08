@@ -155,6 +155,11 @@ public class AllegroShipping implements ShippingProvider {
         try {
             api.post(CREATE_COMMANDS, command);
         } catch (HttpClientException ex) {
+            // 409: the same command id was accepted before (a retry of an answer we lost); refusing would invite a second paid shipment
+            if (ex.getStatusCode() == 409) {
+                log.info("Allegro create command {} already exists", commandId);
+                return ShipmentCreation.pending(commandId, null);
+            }
             if (AllegroErrors.isClientError(ex)) {
                 throw AllegroErrors.exception(ex);
             }
@@ -212,7 +217,20 @@ public class AllegroShipping implements ShippingProvider {
         if (shipmentId == null) {
             return ShipmentCreation.pending(commandId, null);
         }
-        JsonNode shipment = read(SHIPMENTS + shipmentId);
+        JsonNode shipment;
+        try {
+            shipment = api.get(SHIPMENTS + shipmentId);
+        } catch (HttpClientException ex) {
+            // the command succeeded, so the shipment exists and is paid: unreadable details must not look like a failure
+            if (ex.getStatusCode() == 404 || ex.getStatusCode() >= 500) {
+                log.warn("Allegro shipment {} is not readable yet: HTTP {}", shipmentId, ex.getStatusCode());
+                return ShipmentCreation.pending(commandId, shipmentId);
+            }
+            throw AllegroErrors.exception(ex);
+        } catch (RuntimeException ex) {
+            log.warn("Allegro shipment {} is not readable yet: {}", shipmentId, ex.getMessage());
+            return ShipmentCreation.pending(commandId, shipmentId);
+        }
         String carrier = AllegroJson.text(shipment, "carrier");
         boolean pickupAvailable = shipment.path("pickupAvailable").asBoolean(false);
         List<ShipmentResult.ShipmentParcelResult> parcels = new ArrayList<>();
@@ -242,6 +260,11 @@ public class AllegroShipping implements ShippingProvider {
         try {
             api.post(CANCEL_COMMANDS, command);
         } catch (HttpClientException ex) {
+            // 409: the same command id was accepted before (a retry of an answer we lost); refusing would invite a duplicate cancellation
+            if (ex.getStatusCode() == 409) {
+                log.info("Allegro cancel command {} already exists", commandId);
+                return ShipmentCancellation.pending(commandId);
+            }
             if (AllegroErrors.isClientError(ex)) {
                 throw AllegroErrors.exception(ex);
             }

@@ -67,6 +67,16 @@ class AllegroCancellationTest {
     }
 
     @Test
+    void cancelCommandAlreadyKnownToAllegroStaysPending() {
+        // given
+        when(restApi.postWithAuthRetry(eq(CANCEL), any(), anyMap(), eq(JsonNode.class)))
+                .thenThrow(new HttpClientException(409, ""));
+
+        // when / then
+        assertEquals(ShipmentCancellation.Status.PENDING, allegro().cancelShipment(SHIPMENT, "cancel-1").status());
+    }
+
+    @Test
     void successfulCancelCommandSucceeds() {
         // given
         when(restApi.fetchWithAuthRetry(eq(CANCEL + "/cancel-1"), anyMap(), anyMap(), eq(JsonNode.class)))
