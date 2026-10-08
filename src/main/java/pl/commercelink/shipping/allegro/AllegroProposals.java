@@ -7,8 +7,9 @@ import pl.commercelink.shipping.api.DeliveryType;
 import pl.commercelink.shipping.api.PackageOption;
 import pl.commercelink.shipping.api.ShipmentProposal;
 
-import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Set;
 
 /** GET /shipment-management/delivery-proposals/{orderId} (+ the checkout form) as a ShipmentProposal. */
 final class AllegroProposals {
@@ -18,22 +19,38 @@ final class AllegroProposals {
     private AllegroProposals() {
     }
 
-    /** The option the adapter ships with: the first parcel ("PACKAGE") option, else the first one. */
-    static JsonNode primaryOption(JsonNode proposal) {
+    /**
+     * The option the adapter ships with: the first parcel ("PACKAGE") option of the order's payment kind (POSTPAID for
+     * cash on delivery, else PREPAID), else the first parcel option, else the first one. Allegro lists both kinds and
+     * only POSTPAID carries the cash-on-delivery limit.
+     */
+    static JsonNode primaryOption(JsonNode proposal, boolean cashOnDelivery) {
+        String paymentType = cashOnDelivery ? "POSTPAID" : "PREPAID";
+        JsonNode firstPackage = MissingNode.getInstance();
         JsonNode first = MissingNode.getInstance();
         for (JsonNode option : proposal.path("deliveryOptions")) {
-            if ("PACKAGE".equals(AllegroJson.text(option, "packageType"))) {
-                return option;
-            }
             if (first.isMissingNode()) {
                 first = option;
             }
+            if (!"PACKAGE".equals(AllegroJson.text(option, "packageType"))) {
+                continue;
+            }
+            if (paymentType.equals(AllegroJson.text(option, "paymentType"))) {
+                return option;
+            }
+            if (firstPackage.isMissingNode()) {
+                firstPackage = option;
+            }
         }
-        return first;
+        return firstPackage.isMissingNode() ? first : firstPackage;
+    }
+
+    static boolean isCashOnDelivery(JsonNode checkoutForm) {
+        return "CASH_ON_DELIVERY".equals(AllegroJson.text(checkoutForm.path("payment"), "type"));
     }
 
     static ShipmentProposal toProposal(JsonNode proposal, JsonNode checkoutForm, String carrierId) {
-        JsonNode option = primaryOption(proposal);
+        JsonNode option = primaryOption(proposal, isCashOnDelivery(checkoutForm));
         if (option.isMissingNode()) {
             return ShipmentProposal.unavailable(NO_OPTIONS);
         }
@@ -42,7 +59,8 @@ final class AllegroProposals {
         if (point == null) {
             point = AllegroJson.text(delivery.path("pickupPoint"), "id");
         }
-        List<PackageOption> options = new ArrayList<>();
+        // one entry per distinct package: Allegro repeats the same limits for every delivery and payment type
+        Set<PackageOption> options = new LinkedHashSet<>();
         proposal.path("deliveryOptions").forEach(o -> options.add(packageOption(o)));
         JsonNode limits = option.path("limits");
         return ShipmentProposal.available(
@@ -50,7 +68,7 @@ final class AllegroProposals {
                 carrierId,
                 point == null ? null : new DeliveryPoint(point),
                 deliveryType(option),
-                options,
+                List.copyOf(options),
                 AllegroJson.amount(limits.path("cashOnDelivery")),
                 AllegroJson.amount(limits.path("insurance")));
     }

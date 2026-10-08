@@ -15,13 +15,14 @@ structure are as Allegro sent them.
 
 | File | Order / shipment |
 |---|---|
-| `delivery-proposal-dpd.json`, `checkout-form-allegro-dpd.json` (trimmed) | order `3daafd00-…`, "Allegro Kurier DPD (AD)" |
-| `delivery-proposal-locker.json`, `checkout-form-allegro-locker.json` (trimmed) | order `87e369f0-…`, "Allegro Paczkomaty InPost", point WRO226M |
+| `delivery-proposal-dpd.json`, `checkout-form-allegro-dpd.json` (trimmed to `id`, `payment.type`, `delivery`) | order `3daafd00-…`, "Allegro Kurier DPD (AD)" |
+| `delivery-proposal-locker.json`, `checkout-form-allegro-locker.json` (trimmed to `id`, `payment.type`, `delivery`) | order `87e369f0-…`, "Allegro Paczkomaty InPost", point WRO226M |
 | `create-command-success.json`, `shipment-dpd.json`, `pickup-proposals.json` | DPD shipment `b7c6b01a-…`, waybill `AD0W4SGTFDS2NWKJW` |
 | `create-command-in-progress.json`, `create-command-error-postcode.json` | a create command right after it was sent, then its error (made-up buyer post code) |
 | `create-command-error-phone.json` | sender phone without the `+48` prefix |
+| `pickup-proposals-phone-without-prefix.json` | HTTP 400 body: pickup address phone without the `+48` prefix |
 | `create-command-error-inpost-credentials.json` | Allegro InPost methods: the seller has no InPost account linked |
-| `create-command-duplicate.json` | body of the **HTTP 400** `COMMAND_EXISTS` for a create command id sent twice (cancel commands answer the same) |
+| `create-command-duplicate.json` | body of the **HTTP 400** `COMMAND_EXISTS` for a create command id sent twice (cancel commands answer the same; used for pickup commands too) |
 | `shipment-one.json` | One by Allegro shipment `dde12f96-…`, waybill `A0000ADF87` |
 | `pickup-proposals-two-carriers.json` | the DPD and the One shipment asked for together: one group per courier |
 | `cancel-command-success.json` | cancelled Allegro DHL (AD) shipment `d432d229-…` |

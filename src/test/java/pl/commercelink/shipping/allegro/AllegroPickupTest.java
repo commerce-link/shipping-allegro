@@ -105,6 +105,8 @@ class AllegroPickupTest {
         assertEquals("2026-10-08", sent.path("readyDate").asText());
         assertEquals("Magazynowa 3", sent.path("address").path("street").asText());
         assertEquals("50-001", sent.path("address").path("postalCode").asText());
+        // the sandbox refuses "600700800" here too (pickup-proposals-phone-without-prefix.json)
+        assertEquals("+48600700800", sent.path("address").path("phone").asText());
     }
 
     @Test
@@ -197,6 +199,17 @@ class AllegroPickupTest {
         // given: the same command id was accepted before (a retry of an answer we lost)
         when(restApi.postWithAuthRetry(eq(COMMANDS), any(), anyMap(), eq(JsonNode.class)))
                 .thenThrow(new HttpClientException(409, ""));
+        PickupWindow window = new PickupWindow(LocalDate.of(2026, 10, 9), LocalTime.of(14, 0), LocalTime.of(17, 0), null);
+
+        // when / then
+        assertEquals(CommandStatus.PENDING, allegro().orderPickup(List.of(A), warehouse(), window, "pickup-1").status());
+    }
+
+    @Test
+    void pickupCommandIdAllegroAlreadyHasStaysPending() {
+        // given: Allegro answers a command id sent twice with HTTP 400 COMMAND_EXISTS (recorded on create and cancel)
+        when(restApi.postWithAuthRetry(eq(COMMANDS), any(), anyMap(), eq(JsonNode.class)))
+                .thenThrow(new HttpClientException(400, Recordings.text("create-command-duplicate.json")));
         PickupWindow window = new PickupWindow(LocalDate.of(2026, 10, 9), LocalTime.of(14, 0), LocalTime.of(17, 0), null);
 
         // when / then

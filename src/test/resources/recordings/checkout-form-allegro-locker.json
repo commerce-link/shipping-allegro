@@ -1,5 +1,8 @@
 {
  "id": "87e369f0-c31a-11f1-ac0d-1b8fc439c8a2",
+ "payment": {
+  "type": "ONLINE"
+ },
  "delivery": {
   "method": {
    "id": "2488f7b7-5d1c-4d65-b85c-4cbcf253fd93",

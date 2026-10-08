@@ -11,6 +11,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Arrays;
 import java.util.Objects;
+import java.util.regex.Pattern;
 
 /**
  * The input of a create command: Allegro's suggestedInput for the order (receiver with the masked e-mail, delivery
@@ -30,7 +31,7 @@ final class AllegroShipmentInput {
             throw new ShippingException("Allegro nie podało danych nadania dla zamówienia "
                     + request.orderReference().externalOrderId());
         }
-        JsonNode option = AllegroProposals.primaryOption(proposal);
+        JsonNode option = AllegroProposals.primaryOption(proposal, cashOnDelivery(request) != null);
         JsonNode limits = option.path("limits");
         ObjectNode input = ((ObjectNode) suggested).deepCopy();
         // deprecated by Allegro: the method follows from the order; credentials only for own contracts
@@ -92,7 +93,8 @@ final class AllegroShipmentInput {
         putIfPresent(node, "city", address.city());
         putIfPresent(node, "countryCode", address.countryCode());
         putIfPresent(node, "email", address.email());
-        putIfPresent(node, "phone", address.phone());
+        boolean polish = address.countryCode() == null || "PL".equalsIgnoreCase(address.countryCode());
+        putIfPresent(node, "phone", polish ? phone(address.phone()) : address.phone());
         String point = AllegroJson.text(suggestedSender, "point");
         if (point != null) {
             node.put("point", point);
@@ -102,6 +104,23 @@ final class AllegroShipmentInput {
 
     static ObjectNode address(ShipmentAddress address) {
         return sender(address, null);
+    }
+
+    private static final Pattern POLISH_NATIONAL = Pattern.compile("\\d{9}");
+
+    /**
+     * Allegro refuses a phone without the international prefix (VALIDATION_ERROR on sender.phone and on the pickup
+     * address.phone, sandbox 2026-10-08), while shops usually keep Polish numbers as nine digits.
+     */
+    static String phone(String phone) {
+        if (phone == null || phone.isBlank() || phone.strip().startsWith("+")) {
+            return phone;
+        }
+        String digits = phone.replaceAll("[\\s-]", "");
+        if (digits.startsWith("0048") && POLISH_NATIONAL.matcher(digits.substring(4)).matches()) {
+            return "+48" + digits.substring(4);
+        }
+        return POLISH_NATIONAL.matcher(digits).matches() ? "+48" + digits : phone;
     }
 
     private static void putIfPresent(ObjectNode node, String field, String value) {

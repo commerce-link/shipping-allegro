@@ -77,6 +77,16 @@ class AllegroCancellationTest {
     }
 
     @Test
+    void cancelCommandIdAllegroAlreadyHasStaysPending() {
+        // given: the sandbox answers a cancel command id sent twice with HTTP 400 COMMAND_EXISTS
+        when(restApi.postWithAuthRetry(eq(CANCEL), any(), anyMap(), eq(JsonNode.class)))
+                .thenThrow(new HttpClientException(400, Recordings.text("create-command-duplicate.json")));
+
+        // when / then
+        assertEquals(ShipmentCancellation.Status.PENDING, allegro().cancelShipment(SHIPMENT, "cancel-1").status());
+    }
+
+    @Test
     void successfulCancelCommandSucceeds() {
         // given
         when(restApi.fetchWithAuthRetry(eq(CANCEL + "/cancel-1"), anyMap(), anyMap(), eq(JsonNode.class)))

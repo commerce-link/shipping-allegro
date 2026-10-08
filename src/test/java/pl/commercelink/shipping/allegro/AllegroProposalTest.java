@@ -66,7 +66,8 @@ class AllegroProposalTest {
         assertNull(proposal.deliveryPoint());
         assertNull(proposal.maxCashOnDelivery());
         assertEquals(0, new BigDecimal("15000").compareTo(proposal.maxInsurance()));
-        assertEquals(2, proposal.packageOptions().size());
+        // PREPAID and POSTPAID options carry the same package limits: listed once
+        assertEquals(1, proposal.packageOptions().size());
         PackageOption option = proposal.packageOptions().get(0);
         assertEquals("PACKAGE", option.type());
         assertEquals(0, new BigDecimal("150").compareTo(option.maxLength()));
@@ -87,7 +88,42 @@ class AllegroProposalTest {
         assertEquals(DeliveryType.LOCKER, proposal.deliveryType());
         assertEquals("WRO226M", proposal.deliveryPoint().code());
         assertEquals("Allegro Paczkomaty InPost", proposal.methodName());
+        assertEquals(1, proposal.packageOptions().size());
         assertNull(proposal.maxCashOnDelivery());
+    }
+
+    @Test
+    void cashOnDeliveryOrderTakesTheLimitsOfThePostpaidOption() {
+        // given: the real checkout form switched to cash on delivery (no live COD order on the sandbox)
+        answer("/shipment-management/delivery-proposals/" + DPD_ORDER, "delivery-proposal-dpd.json");
+        ObjectNode cashOnDelivery = Recordings.json("checkout-form-allegro-dpd.json").deepCopy();
+        ((ObjectNode) cashOnDelivery.path("payment")).put("type", "CASH_ON_DELIVERY");
+        when(restApi.fetchWithAuthRetry(eq("/order/checkout-forms/" + DPD_ORDER), anyMap(), anyMap(), eq(JsonNode.class)))
+                .thenReturn(cashOnDelivery);
+
+        // when
+        ShipmentProposal proposal = allegro().proposeShipment(new OrderReference("Allegro", DPD_ORDER, "CL-SANDBOX"));
+
+        // then
+        assertEquals(0, new BigDecimal("6000").compareTo(proposal.maxCashOnDelivery()));
+        assertEquals(DeliveryType.DOOR, proposal.deliveryType());
+    }
+
+    @Test
+    void cashOnDeliveryLockerOrderTakesTheLockerPostpaidOption() {
+        // given
+        answer("/shipment-management/delivery-proposals/" + LOCKER_ORDER, "delivery-proposal-locker.json");
+        ObjectNode cashOnDelivery = Recordings.json("checkout-form-allegro-locker.json").deepCopy();
+        ((ObjectNode) cashOnDelivery.path("payment")).put("type", "CASH_ON_DELIVERY");
+        when(restApi.fetchWithAuthRetry(eq("/order/checkout-forms/" + LOCKER_ORDER), anyMap(), anyMap(), eq(JsonNode.class)))
+                .thenReturn(cashOnDelivery);
+
+        // when
+        ShipmentProposal proposal = allegro().proposeShipment(new OrderReference("Allegro", LOCKER_ORDER, "CL-SANDBOX"));
+
+        // then: the first POSTPAID option is the locker (APM), not the pick-up point
+        assertEquals(DeliveryType.LOCKER, proposal.deliveryType());
+        assertEquals(0, new BigDecimal("5000").compareTo(proposal.maxCashOnDelivery()));
     }
 
     @Test

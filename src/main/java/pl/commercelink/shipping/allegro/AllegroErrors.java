@@ -64,6 +64,14 @@ final class AllegroErrors {
         }
     }
 
+    /**
+     * The command id was accepted before (a retry of an answer we lost). Allegro answers HTTP 400 COMMAND_EXISTS
+     * (sandbox 2026-10-08, create and cancel commands); 409 is kept in case it ever answers the documented conflict.
+     */
+    static boolean isDuplicateCommand(HttpClientException ex) {
+        return ex.getStatusCode() == 409 || (ex.getStatusCode() == 400 && hasCode(ex, "COMMAND_EXISTS"));
+    }
+
     /** A 4xx Allegro certainly did not process; 408 is excluded because the request may have been handled before the timeout. */
     static boolean isClientError(HttpClientException ex) {
         return ex.getStatusCode() >= 400 && ex.getStatusCode() < 500 && ex.getStatusCode() != 408;

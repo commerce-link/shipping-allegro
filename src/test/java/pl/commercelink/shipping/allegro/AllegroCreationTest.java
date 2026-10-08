@@ -1,7 +1,6 @@
 package pl.commercelink.shipping.allegro;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -87,13 +86,14 @@ class AllegroCreationTest {
         // when
         allegro(AllegroLabelFormat.PDF_A6).createShipment(request(parcel(300)).build(), "cmd-1");
 
-        // then
+        // then: the receiver is Allegro's suggestion as a whole, nothing of the request's "Ktoś Inny"
         JsonNode input = sentInput().path("input");
+        JsonNode suggested = Recordings.json("delivery-proposal-dpd.json").path("suggestedInput");
+        assertEquals(suggested.path("receiver"), input.path("receiver"));
         assertEquals("x7k2m9p4qa+1a2b3c4d5@user.allegrogroup.pl", input.path("receiver").path("email").asText());
-        assertEquals("Jan Test", input.path("receiver").path("name").asText());
-        assertEquals("50-106", input.path("receiver").path("postalCode").asText());
-        // Allegro suggests no method id (null) and takes the method from the order: the sandbox created the shipment so
-        assertTrue(input.path("deliveryMethodId").isNull());
+        assertNotEquals("jan@gmail.com", input.path("receiver").path("email").asText());
+        // Allegro suggests no method id (null) and takes the method from the order; the sandbox created shipments with it
+        assertEquals(suggested.path("deliveryMethodId"), input.path("deliveryMethodId"));
         assertFalse(input.has("credentialsId"));
     }
 
@@ -186,14 +186,9 @@ class AllegroCreationTest {
     }
 
     @Test
-    void cashOnDeliveryOverTheLimitIsRefused() {
-        // given: only the cash-on-delivery option of the DPD proposal, which allows 6000 PLN
-        ObjectNode cashOnDeliveryOnly = Recordings.json("delivery-proposal-dpd.json").deepCopy();
-        ArrayNode options = (ArrayNode) cashOnDeliveryOnly.path("deliveryOptions");
-        options.remove(0);
-        assertEquals("POSTPAID", options.get(0).path("paymentType").asText());
-        when(restApi.fetchWithAuthRetry(eq(AllegroShipping.PROPOSALS + ORDER), anyMap(), anyMap(), eq(JsonNode.class)))
-                .thenReturn(cashOnDeliveryOnly);
+    void cashOnDeliveryOverTheLimitOfThePostpaidOptionIsRefused() {
+        // given: the real DPD proposal: PREPAID without cash on delivery, POSTPAID up to 6000 PLN
+        proposal("delivery-proposal-dpd.json");
         ShipmentRequest request = request(parcel(100))
                 .options(new ShipmentOptions(false, false, new ShipmentOptions.CashOnDelivery(7000, "PL61", "Sklep", null)))
                 .build();
@@ -203,7 +198,60 @@ class AllegroCreationTest {
                 () -> allegro(AllegroLabelFormat.PDF_A6).createShipment(request, "cmd-1"));
 
         // then
-        assertTrue(e.getMessage().contains("Pobranie"), e.getMessage());
+        assertTrue(e.getMessage().contains("6000"), e.getMessage());
+        verify(restApi, never()).postWithAuthRetry(eq(CREATE), any(), anyMap(), any());
+    }
+
+    @Test
+    void cashOnDeliveryWithinThePostpaidLimitIsSent() {
+        // given
+        proposal("delivery-proposal-dpd.json");
+        ShipmentRequest request = request(parcel(100))
+                .options(new ShipmentOptions(false, false, new ShipmentOptions.CashOnDelivery(5999, "PL61", "Sklep", null)))
+                .build();
+
+        // when
+        allegro(AllegroLabelFormat.PDF_A6).createShipment(request, "cmd-1");
+
+        // then
+        assertEquals("5999.00", sentInput().path("input").path("cashOnDelivery").path("amount").asText());
+    }
+
+    @Test
+    void senderPhoneWithoutInternationalPrefixIsSentWithPlus48() {
+        // given: the sandbox refuses "500600700" (create-command-error-phone.json)
+        proposal("delivery-proposal-dpd.json");
+
+        // when
+        allegro(AllegroLabelFormat.PDF_A6).createShipment(request(parcel(100)).build(), "cmd-1");
+
+        // then
+        assertEquals("+48600700800", sentInput().path("input").path("sender").path("phone").asText());
+    }
+
+    @Test
+    void foreignSenderPhoneIsLeftAsGiven() {
+        // given
+        proposal("delivery-proposal-dpd.json");
+        ShipmentAddress czech = new ShipmentAddress("Sklad", null, "Hlavní 1", "110 00", "Praha", "CZ", "s@sklad.cz", "601234567");
+        ShipmentRequest request = request(parcel(100)).pickup(czech).sender(czech).build();
+
+        // when
+        allegro(AllegroLabelFormat.PDF_A6).createShipment(request, "cmd-1");
+
+        // then
+        assertEquals("601234567", sentInput().path("input").path("sender").path("phone").asText());
+    }
+
+    @Test
+    void polishPhoneNumbersAreNormalisedToE164() {
+        assertEquals("+48600700800", AllegroShipmentInput.phone("600700800"));
+        assertEquals("+48600700800", AllegroShipmentInput.phone("600 700-800"));
+        assertEquals("+48600700800", AllegroShipmentInput.phone("0048600700800"));
+        assertEquals("+48600700800", AllegroShipmentInput.phone("+48600700800"));
+        assertEquals("+420123456789", AllegroShipmentInput.phone("+420123456789"));
+        assertEquals("12345", AllegroShipmentInput.phone("12345"));
+        assertNull(AllegroShipmentInput.phone(null));
     }
 
     @Test
@@ -287,6 +335,21 @@ class AllegroCreationTest {
         proposal("delivery-proposal-dpd.json");
         when(restApi.postWithAuthRetry(eq(CREATE), any(), anyMap(), eq(JsonNode.class)))
                 .thenThrow(new HttpClientException(409, "{\"errors\":[{\"code\":\"CONFLICT\"}]}"));
+
+        // when
+        ShipmentCreation started = allegro(AllegroLabelFormat.PDF_A6).createShipment(request(parcel(100)).build(), "cmd-1");
+
+        // then
+        assertEquals(CommandStatus.PENDING, started.status());
+        assertEquals("cmd-1", started.commandId());
+    }
+
+    @Test
+    void createCommandIdAllegroAlreadyHasStaysPendingInsteadOfBeingRefused() {
+        // given: the sandbox answer for a create command id sent twice (HTTP 400, not 409)
+        proposal("delivery-proposal-dpd.json");
+        when(restApi.postWithAuthRetry(eq(CREATE), any(), anyMap(), eq(JsonNode.class)))
+                .thenThrow(new HttpClientException(400, Recordings.text("create-command-duplicate.json")));
 
         // when
         ShipmentCreation started = allegro(AllegroLabelFormat.PDF_A6).createShipment(request(parcel(100)).build(), "cmd-1");
