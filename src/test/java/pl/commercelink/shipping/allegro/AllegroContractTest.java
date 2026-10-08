@@ -22,8 +22,8 @@ import static org.mockito.Mockito.when;
 @MockitoSettings(strictness = Strictness.LENIENT)
 class AllegroContractTest extends ShippingProviderContractTest {
 
-    private static final String ORDER = "a1b2c3d4-0000-11f1-8456-8d3ada2e8e1c";
-    private static final String SHIPMENT = "9a1b2c3d-1111-4e5f-8a9b-0c1d2e3f4a5b";
+    private static final String ORDER = "3daafd00-c31d-11f1-ac0d-1b8fc439c8a2";
+    private static final String SHIPMENT = "b7c6b01a-2916-4ae7-ae3d-570140674e25";
     private static final String CREATE = "/shipment-management/shipments/create-commands";
 
     @Mock
@@ -41,7 +41,7 @@ class AllegroContractTest extends ShippingProviderContractTest {
         answer("/shipment-management/shipments/" + SHIPMENT, Recordings.json("shipment-dpd.json"));
         when(restApi.postWithAuthRetry(eq("/shipment-management/pickup-proposals"), any(), anyMap(), eq(JsonNode.class)))
                 .thenReturn(Recordings.json("pickup-proposals.json"));
-        when(restApi.fetchWithAuthRetry(eq("/order/carriers/DPD/tracking"), anyMap(), anyMap(), eq(JsonNode.class)))
+        when(restApi.fetchWithAuthRetry(eq("/order/carriers/ALLEGRO/tracking"), anyMap(), anyMap(), eq(JsonNode.class)))
                 .thenReturn(Recordings.json("tracking-in-transit.json"));
     }
 

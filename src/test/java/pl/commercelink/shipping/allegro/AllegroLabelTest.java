@@ -1,6 +1,7 @@
 package pl.commercelink.shipping.allegro;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -19,8 +20,8 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class AllegroLabelTest {
 
-    private static final String DPD = "9a1b2c3d-1111-4e5f-8a9b-0c1d2e3f4a5b";
-    private static final String ONE = "7f6e5d4c-2222-4e5f-8a9b-0c1d2e3f4a5b";
+    private static final String DPD = "b7c6b01a-2916-4ae7-ae3d-570140674e25";
+    private static final String ONE = "dde12f96-34d6-4513-8321-2d47a6b5251e";
     private static final String LABEL = "/shipment-management/label";
 
     @Mock
@@ -44,7 +45,7 @@ class AllegroLabelTest {
 
         // then
         assertEquals("application/pdf", label.contentType());
-        assertEquals("etykieta-0000889416460Q.pdf", label.fileName());
+        assertEquals("etykieta-AD0W4SGTFDS2NWKJW.pdf", label.fileName());
         ArgumentCaptor<Object> body = ArgumentCaptor.forClass(Object.class);
         verify(restApi).postForBytesWithAuthRetry(eq(LABEL), body.capture(), eq("application/octet-stream"));
         JsonNode sent = AllegroJson.MAPPER.valueToTree(body.getValue());
@@ -56,8 +57,10 @@ class AllegroLabelTest {
     @Test
     void zplShipmentGetsAZplFileWhateverTheCurrentSettings() {
         // given: created as ZPL; the store switched to PDF later
+        ObjectNode zplShipment = Recordings.json("shipment-one.json").deepCopy();
+        zplShipment.put("labelFormat", "ZPL");
         when(restApi.fetchWithAuthRetry(eq("/shipment-management/shipments/" + ONE), anyMap(), anyMap(), eq(JsonNode.class)))
-                .thenReturn(Recordings.json("shipment-one.json"));
+                .thenReturn(zplShipment);
         when(restApi.postForBytesWithAuthRetry(eq(LABEL), any(), anyString()))
                 .thenReturn(new BinaryResponse("^XA^XZ".getBytes(), "application/octet-stream"));
 
@@ -66,7 +69,7 @@ class AllegroLabelTest {
 
         // then
         assertEquals("text/plain", label.contentType());
-        assertEquals("etykieta-A000BC123456.zpl", label.fileName());
+        assertEquals("etykieta-A0000ADF87.zpl", label.fileName());
     }
 
     @Test

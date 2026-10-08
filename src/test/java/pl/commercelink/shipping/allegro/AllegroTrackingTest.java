@@ -20,7 +20,7 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class AllegroTrackingTest {
 
-    private static final String SHIPMENT = "9a1b2c3d-1111-4e5f-8a9b-0c1d2e3f4a5b";
+    private static final String SHIPMENT = "b7c6b01a-2916-4ae7-ae3d-570140674e25";
 
     @Mock
     private RestApiWithRetry restApi;
@@ -32,7 +32,7 @@ class AllegroTrackingTest {
     private void shipmentAndTracking(String tracking) {
         when(restApi.fetchWithAuthRetry(eq("/shipment-management/shipments/" + SHIPMENT), anyMap(), anyMap(), eq(JsonNode.class)))
                 .thenReturn(Recordings.json("shipment-dpd.json"));
-        when(restApi.fetchWithAuthRetry(eq("/order/carriers/DPD/tracking"), eq(Map.of("waybill", "0000889416460Q")), anyMap(), eq(JsonNode.class)))
+        when(restApi.fetchWithAuthRetry(eq("/order/carriers/ALLEGRO/tracking"), eq(Map.of("waybill", "AD0W4SGTFDS2NWKJW")), anyMap(), eq(JsonNode.class)))
                 .thenReturn(Recordings.json(tracking));
     }
 
@@ -69,10 +69,10 @@ class AllegroTrackingTest {
 
     @Test
     void noTrackingDetailsIsNoEventsNotAnError() {
-        // given: what the sandbox answers for every waybill (2026-10-06)
+        // given: what the sandbox answers for every waybill (2026-10-06, and 2026-10-08 for Allegro Delivery waybills)
         when(restApi.fetchWithAuthRetry(eq("/shipment-management/shipments/" + SHIPMENT), anyMap(), anyMap(), eq(JsonNode.class)))
                 .thenReturn(Recordings.json("shipment-dpd.json"));
-        when(restApi.fetchWithAuthRetry(eq("/order/carriers/DPD/tracking"), anyMap(), anyMap(), eq(JsonNode.class)))
+        when(restApi.fetchWithAuthRetry(eq("/order/carriers/ALLEGRO/tracking"), anyMap(), anyMap(), eq(JsonNode.class)))
                 .thenReturn(Recordings.json("tracking-no-details.json"));
 
         // when / then

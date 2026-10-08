@@ -1,0 +1,1 @@
+{"commandId":"2cd74a97-a347-4449-849d-9626ee8f177f","status":"ERROR","errors":[{"code":"CARRIER_OPERATION_UNSUPPORTED","message":"The carrier does not handle the requested operation.","details":"","path":"","userMessage":"Przewoźnik nie obsługuje żądanej operacji."}],"shipmentId":null}

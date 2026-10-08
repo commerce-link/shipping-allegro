@@ -1,3 +1,10 @@
-{"id": "a1b2c3d4-0000-11f1-8456-8d3ada2e8e1c",
- "delivery": {"method": {"id": "c3066682-97a3-42fe-9eb5-3beeccab840c", "name": "Allegro Kurier DPD"},
-              "pickupPoint": null}}
+{
+ "id": "3daafd00-c31d-11f1-ac0d-1b8fc439c8a2",
+ "delivery": {
+  "method": {
+   "id": "03f26351-f683-4db2-8895-f2c599280e3c",
+   "name": "Allegro Kurier DPD (AD)"
+  },
+  "pickupPoint": null
+ }
+}

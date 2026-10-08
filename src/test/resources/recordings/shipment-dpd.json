@@ -1,9 +1,74 @@
-{"id":"9a1b2c3d-1111-4e5f-8a9b-0c1d2e3f4a5b","deliveryMethodId":"c3066682-97a3-42fe-9eb5-3beeccab840c",
- "receiver":{"name":"Anna Kupująca","street":"Testowa 5","postalCode":"55-555","city":"Wrocław","countryCode":"PL",
-             "email":"8x7k2m+abc123@allegromail.pl","phone":"500600701","point":null},
- "referenceNumber":"CL-1001",
- "packages":[{"waybill":"0000889416460Q","type":"PACKAGE","length":{"value":30,"unit":"CENTIMETER"},
-              "width":{"value":20,"unit":"CENTIMETER"},"height":{"value":10,"unit":"CENTIMETER"},
-              "weight":{"value":2,"unit":"KILOGRAMS"},"transportingInfo":[]}],
- "createdDate":"2026-10-08T09:12:00Z","canceledDate":null,"carrier":"DPD","labelFormat":"PDF",
- "transport":[],"pickupAvailable":true}
+{
+ "id": "b7c6b01a-2916-4ae7-ae3d-570140674e25",
+ "deliveryMethodId": "03f26351-f683-4db2-8895-f2c599280e3c",
+ "credentialsId": null,
+ "sender": {
+  "name": "Jan Testowy",
+  "company": "SklepTestowyCL",
+  "street": "Legnicka 1",
+  "postalCode": "53-673",
+  "city": "Wrocław",
+  "state": null,
+  "countryCode": "PL",
+  "email": "sender@example.com",
+  "phone": "+48500600700",
+  "point": null
+ },
+ "receiver": {
+  "name": "Jan Test",
+  "company": null,
+  "street": "Rynek 1",
+  "postalCode": "50-106",
+  "city": "Wrocław",
+  "state": null,
+  "countryCode": "PL",
+  "email": "x7k2m9p4qa+1a2b3c4d5@user.allegrogroup.pl",
+  "phone": "+48500600701",
+  "point": null
+ },
+ "referenceNumber": "CL-SANDBOX",
+ "packages": [
+  {
+   "waybill": "AD0W4SGTFDS2NWKJW",
+   "type": "PACKAGE",
+   "length": {
+    "value": 20,
+    "unit": "CENTIMETER"
+   },
+   "width": {
+    "value": 15,
+    "unit": "CENTIMETER"
+   },
+   "height": {
+    "value": 10,
+    "unit": "CENTIMETER"
+   },
+   "weight": {
+    "value": 1,
+    "unit": "KILOGRAMS"
+   },
+   "textOnLabel": null,
+   "transportingInfo": [
+    {
+     "carrierId": "DPD",
+     "carrierWaybill": "1000655303396U"
+    }
+   ]
+  }
+ ],
+ "insurance": {
+  "amount": "50.00",
+  "currency": "PLN"
+ },
+ "cashOnDelivery": null,
+ "createdDate": "2026-10-08T13:40:34.872Z",
+ "canceledDate": null,
+ "carrier": "ALLEGRO",
+ "labelFormat": "PDF",
+ "additionalServices": [],
+ "additionalProperties": {},
+ "transport": [
+  "DPD"
+ ],
+ "pickupAvailable": true
+}

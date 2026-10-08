@@ -19,14 +19,22 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class AllegroProposalTest {
 
-    private static final String DPD_ORDER = "a1b2c3d4-0000-11f1-8456-8d3ada2e8e1c";
-    private static final String LOCKER_ORDER = "b2c3d4e5-0000-11f1-8456-8d3ada2e8e1c";
+    private static final String DPD_ORDER = "3daafd00-c31d-11f1-ac0d-1b8fc439c8a2";
+    private static final String LOCKER_ORDER = "87e369f0-c31a-11f1-ac0d-1b8fc439c8a2";
 
     @Mock
     private RestApiWithRetry restApi;
 
     private AllegroShipping allegro() {
         return new AllegroShipping(restApi, AllegroLabelFormat.PDF_A6);
+    }
+
+    /** The real proposal with the method id the OpenAPI documents; the sandbox leaves it null. */
+    private void proposalWithSuggestedMethod() {
+        ObjectNode proposal = Recordings.json("delivery-proposal-dpd.json").deepCopy();
+        ((ObjectNode) proposal.path("suggestedInput")).put("deliveryMethodId", "03f26351-f683-4db2-8895-f2c599280e3c");
+        when(restApi.fetchWithAuthRetry(eq("/shipment-management/delivery-proposals/" + DPD_ORDER), anyMap(), anyMap(), eq(JsonNode.class)))
+                .thenReturn(proposal);
     }
 
     private void answer(String path, String recording) {
@@ -41,27 +49,28 @@ class AllegroProposalTest {
     }
 
     @Test
-    void proposalForAnAllegroDeliveryOrderCarriesMethodCarrierAndLimits() {
+    void proposalForAnAllegroDeliveryOrderCarriesMethodAndLimitsOfThePrepaidParcel() {
         // given
         answer("/shipment-management/delivery-proposals/" + DPD_ORDER, "delivery-proposal-dpd.json");
         answer("/order/checkout-forms/" + DPD_ORDER, "checkout-form-allegro-dpd.json");
-        answer("/shipment-management/delivery-services", "delivery-services.json");
 
         // when
-        ShipmentProposal proposal = allegro().proposeShipment(new OrderReference("Allegro", DPD_ORDER, "CL-1001"));
+        ShipmentProposal proposal = allegro().proposeShipment(new OrderReference("Allegro", DPD_ORDER, "CL-SANDBOX"));
 
         // then
         assertTrue(proposal.available());
-        assertEquals("Allegro Kurier DPD", proposal.methodName());
-        assertEquals("DPD", proposal.carrierId());
+        assertEquals("Allegro Kurier DPD (AD)", proposal.methodName());
+        // the sandbox (2026-10-08) leaves suggestedInput.deliveryMethodId null, so no carrier is looked up
+        assertNull(proposal.carrierId());
         assertEquals(DeliveryType.DOOR, proposal.deliveryType());
         assertNull(proposal.deliveryPoint());
-        assertEquals(new BigDecimal("5000.00"), proposal.maxCashOnDelivery());
-        assertEquals(new BigDecimal("20000.00"), proposal.maxInsurance());
+        assertNull(proposal.maxCashOnDelivery());
+        assertEquals(0, new BigDecimal("15000").compareTo(proposal.maxInsurance()));
+        assertEquals(2, proposal.packageOptions().size());
         PackageOption option = proposal.packageOptions().get(0);
         assertEquals("PACKAGE", option.type());
         assertEquals(0, new BigDecimal("150").compareTo(option.maxLength()));
-        assertEquals(0, new BigDecimal("31.5").compareTo(option.maxWeight()));
+        assertEquals(0, new BigDecimal("300").compareTo(option.maxWeight()));
     }
 
     @Test
@@ -69,7 +78,6 @@ class AllegroProposalTest {
         // given
         answer("/shipment-management/delivery-proposals/" + LOCKER_ORDER, "delivery-proposal-locker.json");
         answer("/order/checkout-forms/" + LOCKER_ORDER, "checkout-form-allegro-locker.json");
-        answer("/shipment-management/delivery-services", "delivery-services.json");
 
         // when
         ShipmentProposal proposal = allegro().proposeShipment(new OrderReference("Allegro", LOCKER_ORDER, "CL-1002"));
@@ -77,7 +85,8 @@ class AllegroProposalTest {
         // then
         assertTrue(proposal.available());
         assertEquals(DeliveryType.LOCKER, proposal.deliveryType());
-        assertEquals("WRO01M", proposal.deliveryPoint().code());
+        assertEquals("WRO226M", proposal.deliveryPoint().code());
+        assertEquals("Allegro Paczkomaty InPost", proposal.methodName());
         assertNull(proposal.maxCashOnDelivery());
     }
 
@@ -106,7 +115,7 @@ class AllegroProposalTest {
         answer("/order/checkout-forms/" + DPD_ORDER, "checkout-form-allegro-dpd.json");
 
         // when
-        ShipmentProposal proposal = allegro().proposeShipment(new OrderReference("Allegro", DPD_ORDER, "CL-1001"));
+        ShipmentProposal proposal = allegro().proposeShipment(new OrderReference("Allegro", DPD_ORDER, "CL-SANDBOX"));
 
         // then
         assertFalse(proposal.available());
@@ -114,15 +123,29 @@ class AllegroProposalTest {
     }
 
     @Test
+    void suggestedDeliveryMethodIsLookedUpForItsCarrier() {
+        // given
+        proposalWithSuggestedMethod();
+        answer("/order/checkout-forms/" + DPD_ORDER, "checkout-form-allegro-dpd.json");
+        answer("/shipment-management/delivery-services", "delivery-services.json");
+
+        // when
+        ShipmentProposal proposal = allegro().proposeShipment(new OrderReference("Allegro", DPD_ORDER, "CL-SANDBOX"));
+
+        // then
+        assertEquals("ALLEGRO", proposal.carrierId());
+    }
+
+    @Test
     void carrierLookupFailureLeavesTheCarrierEmptyButTheProposalAvailable() {
         // given
-        answer("/shipment-management/delivery-proposals/" + DPD_ORDER, "delivery-proposal-dpd.json");
+        proposalWithSuggestedMethod();
         answer("/order/checkout-forms/" + DPD_ORDER, "checkout-form-allegro-dpd.json");
         when(restApi.fetchWithAuthRetry(eq("/shipment-management/delivery-services"), anyMap(), anyMap(), eq(JsonNode.class)))
                 .thenThrow(new HttpClientException(503, ""));
 
         // when
-        ShipmentProposal proposal = allegro().proposeShipment(new OrderReference("Allegro", DPD_ORDER, "CL-1001"));
+        ShipmentProposal proposal = allegro().proposeShipment(new OrderReference("Allegro", DPD_ORDER, "CL-SANDBOX"));
 
         // then
         assertTrue(proposal.available());

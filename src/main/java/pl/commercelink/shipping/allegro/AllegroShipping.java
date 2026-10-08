@@ -233,7 +233,7 @@ public class AllegroShipping implements ShippingProvider {
             log.warn("Allegro shipment {} is not readable yet: {}", shipmentId, ex.getMessage());
             return ShipmentCreation.pending(commandId, shipmentId);
         }
-        String carrier = AllegroJson.text(shipment, "carrier");
+        String carrier = courierOf(shipment);
         boolean pickupAvailable = shipment.path("pickupAvailable").asBoolean(false);
         List<ShipmentResult.ShipmentParcelResult> parcels = new ArrayList<>();
         for (JsonNode pkg : shipment.path("packages")) {
@@ -241,14 +241,24 @@ public class AllegroShipping implements ShippingProvider {
             if (waybill == null) {
                 return ShipmentCreation.pending(commandId, shipmentId);
             }
-            // One by Allegro (carrier ALLEGRO) shipments cannot be cancelled: Allegro's rule
+            // One by Allegro shipments cannot be cancelled: Allegro's rule
             parcels.add(new ShipmentResult.ShipmentParcelResult(waybill, carrier, null, pickupAvailable, null,
-                    !"ALLEGRO".equals(carrier)));
+                    carrier == null || !carrier.startsWith("ALLEGRO")));
         }
         if (parcels.isEmpty()) {
             return ShipmentCreation.pending(commandId, shipmentId);
         }
         return ShipmentCreation.succeeded(commandId, new ShipmentResult(shipmentId, parcels, null));
+    }
+
+    /**
+     * The courier that carries the shipment. Allegro answers carrier ALLEGRO for every Allegro Delivery shipment and
+     * names the courier in transport (DPD, DHL, ALLEGRO_ONE_KURIER); the application groups pickups by this value, so
+     * ALLEGRO alone would put shipments of different couriers into one pickup.
+     */
+    private static String courierOf(JsonNode shipment) {
+        String transport = shipment.path("transport").path(0).asText(null);
+        return transport != null && !transport.isBlank() ? transport : AllegroJson.text(shipment, "carrier");
     }
 
     private static final String CANCEL_COMMANDS = "/shipment-management/shipments/cancel-commands";

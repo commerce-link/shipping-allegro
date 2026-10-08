@@ -1,0 +1,11 @@
+[{"proposals":[
+   {"shipmentId":"9a1b2c3d-1111-4e5f-8a9b-0c1d2e3f4a5b","pickupTimes":[
+      {"date":"2026-10-09","minTime":"14:00","maxTime":"17:00"},
+      {"date":"2026-10-08","minTime":"10:00","maxTime":"14:00"},
+      {"date":"2026-10-10","minTime":"09:00","maxTime":"17:00"},
+      {"date":"2026-10-20","minTime":"09:00","maxTime":"17:00"}]},
+   {"shipmentId":"5b4a3c2d-3333-4e5f-8a9b-0c1d2e3f4a5b","pickupTimes":[
+      {"date":"2026-10-08","minTime":"10:00","maxTime":"14:00"},
+      {"date":"2026-10-09","minTime":"14:00","maxTime":"17:00"},
+      {"date":"2026-10-20","minTime":"09:00","maxTime":"17:00"}]}],
+  "address":{"name":"Magazyn Sklepu","street":"Magazynowa 3","postalCode":"50-001","city":"Wrocław","countryCode":"PL"}}]

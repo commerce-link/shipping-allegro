@@ -1,0 +1,72 @@
+[
+ {
+  "proposals": [
+   {
+    "shipmentId": "dde12f96-34d6-4513-8321-2d47a6b5251e",
+    "pickupTimes": [
+     {
+      "date": "2026-10-08",
+      "minTime": "15:46",
+      "maxTime": "19:00"
+     },
+     {
+      "date": "2026-10-09",
+      "minTime": "08:00",
+      "maxTime": "19:00"
+     },
+     {
+      "date": "2026-10-12",
+      "minTime": "08:00",
+      "maxTime": "19:00"
+     }
+    ]
+   }
+  ],
+  "address": {
+   "name": "Jan Testowy",
+   "company": "SklepTestowyCL",
+   "street": "Legnicka 1",
+   "postalCode": "53-673",
+   "city": "Wrocław",
+   "state": null,
+   "countryCode": "PL",
+   "email": "sender@example.com",
+   "phone": "+48500600700"
+  }
+ },
+ {
+  "proposals": [
+   {
+    "shipmentId": "b7c6b01a-2916-4ae7-ae3d-570140674e25",
+    "pickupTimes": [
+     {
+      "date": "2026-10-09",
+      "minTime": "09:00",
+      "maxTime": "17:00"
+     },
+     {
+      "date": "2026-10-09",
+      "minTime": "11:00",
+      "maxTime": "14:00"
+     },
+     {
+      "date": "2026-10-09",
+      "minTime": "14:00",
+      "maxTime": "17:00"
+     }
+    ]
+   }
+  ],
+  "address": {
+   "name": "Jan Testowy",
+   "company": "SklepTestowyCL",
+   "street": "Legnicka 1",
+   "postalCode": "53-673",
+   "city": "Wrocław",
+   "state": null,
+   "countryCode": "PL",
+   "email": "sender@example.com",
+   "phone": "+48500600700"
+  }
+ }
+]

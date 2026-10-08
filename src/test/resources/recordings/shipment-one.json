@@ -1,3 +1,77 @@
-{"id":"7f6e5d4c-2222-4e5f-8a9b-0c1d2e3f4a5b","deliveryMethodId":"0856a050-3310-44eb-8ad6-0a3151c1da58",
- "packages":[{"waybill":"A000BC123456","type":"PACKAGE"}],
- "carrier":"ALLEGRO","labelFormat":"ZPL","pickupAvailable":false}
+{
+ "id": "dde12f96-34d6-4513-8321-2d47a6b5251e",
+ "deliveryMethodId": "0d83955a-4297-4169-adef-9790d53b11ff",
+ "credentialsId": null,
+ "sender": {
+  "name": "Jan Testowy",
+  "company": "SklepTestowyCL",
+  "street": "Legnicka 1",
+  "postalCode": "53-673",
+  "city": "Wrocław",
+  "state": null,
+  "countryCode": "PL",
+  "email": "sender@example.com",
+  "phone": "+48500600700",
+  "point": null
+ },
+ "receiver": {
+  "name": "Jan Test",
+  "company": null,
+  "street": "Rynek 1",
+  "postalCode": "50-106",
+  "city": "Wrocław",
+  "state": null,
+  "countryCode": "PL",
+  "email": "x7k2m9p4qa+1a2b3c4d5@user.allegrogroup.pl",
+  "phone": "+48500600701",
+  "point": null
+ },
+ "referenceNumber": "CL-SANDBOX",
+ "packages": [
+  {
+   "waybill": "A0000ADF87",
+   "type": "PACKAGE",
+   "length": {
+    "value": 20,
+    "unit": "CENTIMETER"
+   },
+   "width": {
+    "value": 15,
+    "unit": "CENTIMETER"
+   },
+   "height": {
+    "value": 10,
+    "unit": "CENTIMETER"
+   },
+   "weight": {
+    "value": 1,
+    "unit": "KILOGRAMS"
+   },
+   "textOnLabel": null,
+   "transportingInfo": [
+    {
+     "carrierId": "ALLEGRO_ONE_KURIER",
+     "carrierWaybill": "A0000ADF87"
+    }
+   ]
+  }
+ ],
+ "insurance": {
+  "amount": "50.00",
+  "currency": "PLN"
+ },
+ "cashOnDelivery": null,
+ "createdDate": "2026-10-08T13:44:30.883Z",
+ "canceledDate": null,
+ "carrier": "ALLEGRO",
+ "labelFormat": "PDF",
+ "additionalServices": [],
+ "additionalProperties": {
+  "EXTERNAL_CARRIER_WAYBILL": "A0000ADF87",
+  "FIRST_MILE_CARRIER": "ALLEGRO_ONE_KURIER"
+ },
+ "transport": [
+  "ALLEGRO_ONE_KURIER"
+ ],
+ "pickupAvailable": true
+}

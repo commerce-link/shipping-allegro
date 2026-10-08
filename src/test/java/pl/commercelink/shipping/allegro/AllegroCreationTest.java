@@ -1,6 +1,8 @@
 package pl.commercelink.shipping.allegro;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -20,8 +22,9 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class AllegroCreationTest {
 
-    private static final String ORDER = "a1b2c3d4-0000-11f1-8456-8d3ada2e8e1c";
-    private static final String SHIPMENT = "9a1b2c3d-1111-4e5f-8a9b-0c1d2e3f4a5b";
+    private static final String ORDER = "3daafd00-c31d-11f1-ac0d-1b8fc439c8a2";
+    private static final String SHIPMENT = "b7c6b01a-2916-4ae7-ae3d-570140674e25";
+    private static final String ONE = "dde12f96-34d6-4513-8321-2d47a6b5251e";
     private static final String CREATE = "/shipment-management/shipments/create-commands";
 
     @Mock
@@ -86,9 +89,11 @@ class AllegroCreationTest {
 
         // then
         JsonNode input = sentInput().path("input");
-        assertEquals("8x7k2m+abc123@allegromail.pl", input.path("receiver").path("email").asText());
-        assertEquals("Anna Kupująca", input.path("receiver").path("name").asText());
-        assertEquals("c3066682-97a3-42fe-9eb5-3beeccab840c", input.path("deliveryMethodId").asText());
+        assertEquals("x7k2m9p4qa+1a2b3c4d5@user.allegrogroup.pl", input.path("receiver").path("email").asText());
+        assertEquals("Jan Test", input.path("receiver").path("name").asText());
+        assertEquals("50-106", input.path("receiver").path("postalCode").asText());
+        // Allegro suggests no method id (null) and takes the method from the order: the sandbox created the shipment so
+        assertTrue(input.path("deliveryMethodId").isNull());
         assertFalse(input.has("credentialsId"));
     }
 
@@ -182,10 +187,15 @@ class AllegroCreationTest {
 
     @Test
     void cashOnDeliveryOverTheLimitIsRefused() {
-        // given: DPD allows 5000 PLN
-        proposal("delivery-proposal-dpd.json");
+        // given: only the cash-on-delivery option of the DPD proposal, which allows 6000 PLN
+        ObjectNode cashOnDeliveryOnly = Recordings.json("delivery-proposal-dpd.json").deepCopy();
+        ArrayNode options = (ArrayNode) cashOnDeliveryOnly.path("deliveryOptions");
+        options.remove(0);
+        assertEquals("POSTPAID", options.get(0).path("paymentType").asText());
+        when(restApi.fetchWithAuthRetry(eq(AllegroShipping.PROPOSALS + ORDER), anyMap(), anyMap(), eq(JsonNode.class)))
+                .thenReturn(cashOnDeliveryOnly);
         ShipmentRequest request = request(parcel(100))
-                .options(new ShipmentOptions(false, false, new ShipmentOptions.CashOnDelivery(6000, "PL61", "Sklep", null)))
+                .options(new ShipmentOptions(false, false, new ShipmentOptions.CashOnDelivery(7000, "PL61", "Sklep", null)))
                 .build();
 
         // when
@@ -349,7 +359,8 @@ class AllegroCreationTest {
         assertEquals(CommandStatus.SUCCEEDED, done.status());
         assertEquals(SHIPMENT, done.externalId());
         ShipmentResult.ShipmentParcelResult parcel = done.result().parcels().get(0);
-        assertEquals("0000889416460Q", parcel.trackingNo());
+        assertEquals("AD0W4SGTFDS2NWKJW", parcel.trackingNo());
+        // Allegro answers carrier ALLEGRO for every Allegro Delivery shipment; the courier is in transport
         assertEquals("DPD", parcel.carrier());
         assertNull(parcel.trackingUrl());
         assertTrue(parcel.pickupRequired());
@@ -357,12 +368,12 @@ class AllegroCreationTest {
     }
 
     @Test
-    void oneByAllegroShipmentCannotBeCancelledAndNeedsNoPickup() {
-        // given
+    void oneByAllegroShipmentCannotBeCancelled() {
+        // given: Allegro refuses to cancel it ("You cannot cancel a shipment with the Allegro carrier", sandbox 2026-10-08)
         when(restApi.fetchWithAuthRetry(eq(CREATE + "/cmd-1"), anyMap(), anyMap(), eq(JsonNode.class)))
                 .thenReturn(AllegroJson.MAPPER.valueToTree(java.util.Map.of(
-                        "commandId", "cmd-1", "status", "SUCCESS", "shipmentId", "7f6e5d4c-2222-4e5f-8a9b-0c1d2e3f4a5b")));
-        when(restApi.fetchWithAuthRetry(eq("/shipment-management/shipments/7f6e5d4c-2222-4e5f-8a9b-0c1d2e3f4a5b"), anyMap(), anyMap(), eq(JsonNode.class)))
+                        "commandId", "cmd-1", "status", "SUCCESS", "shipmentId", ONE)));
+        when(restApi.fetchWithAuthRetry(eq("/shipment-management/shipments/" + ONE), anyMap(), anyMap(), eq(JsonNode.class)))
                 .thenReturn(Recordings.json("shipment-one.json"));
 
         // when
@@ -370,9 +381,30 @@ class AllegroCreationTest {
                 .checkShipmentCreation("cmd-1", null).result().parcels().get(0);
 
         // then
-        assertEquals("ALLEGRO", parcel.carrier());
+        assertEquals("A0000ADF87", parcel.trackingNo());
+        assertEquals("ALLEGRO_ONE_KURIER", parcel.carrier());
         assertFalse(parcel.cancellable());
-        assertFalse(parcel.pickupRequired());
+        assertTrue(parcel.pickupRequired());
+    }
+
+    @Test
+    void shipmentWithoutTransportKeepsAllegrosCarrier() {
+        // given
+        ObjectNode shipment = Recordings.json("shipment-dpd.json").deepCopy();
+        shipment.remove("transport");
+        shipment.put("carrier", "DPD");
+        when(restApi.fetchWithAuthRetry(eq(CREATE + "/cmd-1"), anyMap(), anyMap(), eq(JsonNode.class)))
+                .thenReturn(Recordings.json("create-command-success.json"));
+        when(restApi.fetchWithAuthRetry(eq("/shipment-management/shipments/" + SHIPMENT), anyMap(), anyMap(), eq(JsonNode.class)))
+                .thenReturn(shipment);
+
+        // when
+        ShipmentResult.ShipmentParcelResult parcel = allegro(AllegroLabelFormat.PDF_A6)
+                .checkShipmentCreation("cmd-1", null).result().parcels().get(0);
+
+        // then
+        assertEquals("DPD", parcel.carrier());
+        assertTrue(parcel.cancellable());
     }
 
     @Test

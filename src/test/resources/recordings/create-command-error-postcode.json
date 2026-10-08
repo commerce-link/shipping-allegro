@@ -1,0 +1,1 @@
+{"commandId":"6aaa8c64-8c96-41f4-97a2-6dc24ff3a483","status":"ERROR","errors":[{"code":"SHIPMENT_RECEIVER_POSTAL_CODE_INVALID","message":"Invalid recipient postal code","details":"","path":"receiver.postalCode","userMessage":"Nieprawidłowy kod pocztowy odbiorcy"}],"shipmentId":null}

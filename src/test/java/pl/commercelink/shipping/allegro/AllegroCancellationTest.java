@@ -18,7 +18,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class AllegroCancellationTest {
 
-    private static final String SHIPMENT = "9a1b2c3d-1111-4e5f-8a9b-0c1d2e3f4a5b";
+    private static final String SHIPMENT = "b7c6b01a-2916-4ae7-ae3d-570140674e25";
     private static final String CANCEL = "/shipment-management/shipments/cancel-commands";
 
     @Mock
@@ -102,6 +102,20 @@ class AllegroCancellationTest {
         // then
         assertEquals(ShipmentCancellation.Status.FAILED, done.status());
         assertEquals("Carriage not found", done.error());
+    }
+
+    @Test
+    void oneByAllegroCancelIsRefusedWithAllegrosReason() {
+        // given: the 2026-10-08 sandbox answer for a One by Allegro shipment
+        when(restApi.fetchWithAuthRetry(eq(CANCEL + "/cancel-1"), anyMap(), anyMap(), eq(JsonNode.class)))
+                .thenReturn(Recordings.json("cancel-command-error-one.json"));
+
+        // when
+        ShipmentCancellation done = allegro().checkShipmentCancellation("cancel-1", SHIPMENT);
+
+        // then
+        assertEquals(ShipmentCancellation.Status.FAILED, done.status());
+        assertEquals("Nie można anulować przesyłki u przewoźnika Allegro", done.error());
     }
 
     @Test

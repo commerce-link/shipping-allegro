@@ -23,6 +23,8 @@ class AllegroPickupTest {
 
     private static final String A = "9a1b2c3d-1111-4e5f-8a9b-0c1d2e3f4a5b";
     private static final String B = "5b4a3c2d-3333-4e5f-8a9b-0c1d2e3f4a5b";
+    private static final String DPD = "b7c6b01a-2916-4ae7-ae3d-570140674e25";
+    private static final String ONE = "dde12f96-34d6-4513-8321-2d47a6b5251e";
     private static final String PROPOSALS = "/shipment-management/pickup-proposals";
     private static final String COMMANDS = "/shipment-management/pickups/create-commands";
 
@@ -44,10 +46,27 @@ class AllegroPickupTest {
     }
 
     @Test
-    void windowsAreThoseCommonToAllShipmentsWithinTheDaysAheadSorted() {
-        // given
+    void windowsOfOneShipmentAreAllegrosWithinTheDaysAheadSorted() {
+        // given: the 2026-10-08 sandbox answer for an Allegro DPD shipment
         when(restApi.postWithAuthRetry(eq(PROPOSALS), any(), anyMap(), eq(JsonNode.class)))
                 .thenReturn(Recordings.json("pickup-proposals.json"));
+
+        // when
+        List<PickupWindow> windows = allegro().pickupWindows(List.of(DPD), warehouse(), LocalDate.of(2026, 10, 8), 4);
+
+        // then
+        assertEquals(List.of(
+                new PickupWindow(LocalDate.of(2026, 10, 9), LocalTime.of(9, 0), LocalTime.of(17, 0), "2026-10-09|09:00|17:00"),
+                new PickupWindow(LocalDate.of(2026, 10, 9), LocalTime.of(11, 0), LocalTime.of(14, 0), "2026-10-09|11:00|14:00"),
+                new PickupWindow(LocalDate.of(2026, 10, 9), LocalTime.of(14, 0), LocalTime.of(17, 0), "2026-10-09|14:00|17:00")),
+                windows);
+    }
+
+    @Test
+    void windowsAreThoseCommonToAllShipmentsWithinTheDaysAheadSorted() {
+        // given: synthetic, two shipments of one courier
+        when(restApi.postWithAuthRetry(eq(PROPOSALS), any(), anyMap(), eq(JsonNode.class)))
+                .thenReturn(Recordings.json("pickup-proposals-two-shipments.json"));
 
         // when
         List<PickupWindow> windows = allegro().pickupWindows(List.of(A, B), warehouse(), LocalDate.of(2026, 10, 8), 4);
@@ -57,6 +76,16 @@ class AllegroPickupTest {
                 new PickupWindow(LocalDate.of(2026, 10, 8), LocalTime.of(10, 0), LocalTime.of(14, 0), "2026-10-08|10:00|14:00"),
                 new PickupWindow(LocalDate.of(2026, 10, 9), LocalTime.of(14, 0), LocalTime.of(17, 0), "2026-10-09|14:00|17:00")),
                 windows);
+    }
+
+    @Test
+    void shipmentsOfDifferentCouriersHaveNoCommonWindow() {
+        // given: the 2026-10-08 sandbox answer for a DPD and a One by Allegro shipment, one group per courier
+        when(restApi.postWithAuthRetry(eq(PROPOSALS), any(), anyMap(), eq(JsonNode.class)))
+                .thenReturn(Recordings.json("pickup-proposals-two-carriers.json"));
+
+        // when / then
+        assertTrue(allegro().pickupWindows(List.of(DPD, ONE), warehouse(), LocalDate.of(2026, 10, 8), 4).isEmpty());
     }
 
     @Test
@@ -85,7 +114,7 @@ class AllegroPickupTest {
                 .thenReturn(Recordings.json("pickup-proposals.json"));
 
         // when / then
-        assertTrue(allegro().pickupWindows(List.of(A, "unknown"), warehouse(), LocalDate.of(2026, 10, 8), 4).isEmpty());
+        assertTrue(allegro().pickupWindows(List.of(DPD, "unknown"), warehouse(), LocalDate.of(2026, 10, 8), 4).isEmpty());
     }
 
     @Test

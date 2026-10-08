@@ -1,0 +1,1 @@
+{"commandId":"a0f76c9a-cf3a-4bc2-9493-31dd46865da8","status":"ERROR","errors":[{"code":"VALIDATION_ERROR","message":"The phone number must include an international prefix","details":"","path":"sender.phone","userMessage":"Numer telefonu musi zawierać prefiks międzynarodowy"}],"shipmentId":null}
