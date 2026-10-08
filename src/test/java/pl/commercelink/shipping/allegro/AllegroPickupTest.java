@@ -153,6 +153,17 @@ class AllegroPickupTest {
     }
 
     @Test
+    void requestTimeoutOnThePickupCommandStaysPending() {
+        // given
+        when(restApi.postWithAuthRetry(eq(COMMANDS), any(), anyMap(), eq(JsonNode.class)))
+                .thenThrow(new HttpClientException(408, ""));
+        PickupWindow window = new PickupWindow(LocalDate.of(2026, 10, 9), LocalTime.of(14, 0), LocalTime.of(17, 0), null);
+
+        // when / then
+        assertEquals(CommandStatus.PENDING, allegro().orderPickup(List.of(A), warehouse(), window, "pickup-1").status());
+    }
+
+    @Test
     void duplicatePickupCommandStaysPendingInsteadOfBeingRefused() {
         // given: the same command id was accepted before (a retry of an answer we lost)
         when(restApi.postWithAuthRetry(eq(COMMANDS), any(), anyMap(), eq(JsonNode.class)))

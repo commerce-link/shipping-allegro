@@ -258,6 +258,20 @@ class AllegroCreationTest {
     }
 
     @Test
+    void requestTimeoutOnTheCreateCommandStaysPendingBecauseAllegroMayHaveProcessedIt() {
+        // given
+        proposal("delivery-proposal-dpd.json");
+        when(restApi.postWithAuthRetry(eq(CREATE), any(), anyMap(), eq(JsonNode.class)))
+                .thenThrow(new HttpClientException(408, ""));
+
+        // when
+        ShipmentCreation started = allegro(AllegroLabelFormat.PDF_A6).createShipment(request(parcel(100)).build(), "cmd-1");
+
+        // then
+        assertEquals(CommandStatus.PENDING, started.status());
+    }
+
+    @Test
     void commandAlreadyKnownToAllegroStaysPendingInsteadOfBeingRefused() {
         // given
         proposal("delivery-proposal-dpd.json");

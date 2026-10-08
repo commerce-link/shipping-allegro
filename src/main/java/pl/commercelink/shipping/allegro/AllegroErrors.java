@@ -64,8 +64,9 @@ final class AllegroErrors {
         }
     }
 
+    /** A 4xx Allegro certainly did not process; 408 is excluded because the request may have been handled before the timeout. */
     static boolean isClientError(HttpClientException ex) {
-        return ex.getStatusCode() >= 400 && ex.getStatusCode() < 500;
+        return ex.getStatusCode() >= 400 && ex.getStatusCode() < 500 && ex.getStatusCode() != 408;
     }
 
     /** Errors of a command status answer joined for the operator; the fallback when Allegro gave none. */
