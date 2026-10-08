@@ -1,0 +1,33 @@
+{
+  "orderId": "a1b2c3d4-0000-11f1-8456-8d3ada2e8e1c",
+  "suggestedInput": {
+    "deliveryMethodId": "c3066682-97a3-42fe-9eb5-3beeccab840c",
+    "credentialsId": null,
+    "sender": {"name": "Sklep Testowy", "company": "SklepTestowyCL", "street": "Legnicka 1", "postalCode": "53-673",
+               "city": "Wrocław", "state": null, "countryCode": "PL", "email": "sklep@example.com", "phone": "500600700",
+               "point": null},
+    "receiver": {"name": "Anna Kupująca", "company": null, "street": "Testowa 5", "postalCode": "55-555",
+                 "city": "Wrocław", "state": null, "countryCode": "PL", "email": "8x7k2m+abc123@allegromail.pl",
+                 "phone": "500600701", "point": null},
+    "referenceNumber": null,
+    "packages": [{"type": "PACKAGE", "length": {"value": 10, "unit": "CENTIMETER"},
+                  "width": {"value": 10, "unit": "CENTIMETER"}, "height": {"value": 10, "unit": "CENTIMETER"},
+                  "weight": {"value": 1, "unit": "KILOGRAMS"}, "textOnLabel": null}],
+    "insurance": null,
+    "cashOnDelivery": null,
+    "labelFormat": "PDF",
+    "additionalServices": [],
+    "additionalProperties": {}
+  },
+  "deliveryOptions": [
+    {"deliveryType": "DOOR", "paymentType": "PREPAID", "packageType": "PACKAGE", "originCountry": "PL",
+     "destinationCountry": "PL",
+     "limits": {"cashOnDelivery": {"amount": "5000.00", "currency": "PLN"},
+                "insurance": {"amount": "20000.00", "currency": "PLN"},
+                "dimensions": {"length": {"value": 150, "unit": "CENTIMETER"},
+                               "width": {"value": 100, "unit": "CENTIMETER"},
+                               "height": {"value": 80, "unit": "CENTIMETER"}},
+                "weight": {"value": 31.5, "unit": "KILOGRAMS"}},
+     "additionalServices": [], "additionalProperties": []}
+  ]
+}

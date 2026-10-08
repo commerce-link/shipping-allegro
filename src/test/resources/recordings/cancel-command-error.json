@@ -1,0 +1,1 @@
+{"commandId":"b452bb27-c598-4479-af46-a8f98b6fd52c","status":"ERROR","errors":[{"code":"SHIPMENT_NOT_FOUND","message":"Requested shipment was not found","details":"Requested shipment was not found","path":"shipmentId","userMessage":"Carriage not found"}],"shipmentId":null}

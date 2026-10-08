@@ -1,0 +1,1 @@
+{"errors":[{"code":"UNSUPPORTED_DELIVERY_METHOD","details":"Brak wsparcia dla wskazanej metody dostawy: 685d8b40-2571-4111-8937-9220b1710d4c","message":"The selected delivery option is not supported.","metadata":{},"path":"deliveryMethodId","userMessage":"The selected delivery option is not supported."}]}

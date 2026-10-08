@@ -1,0 +1,1 @@
+{"commandId":"9fff5c3d-f5c9-4740-b8b0-848464b019ef","status":"ERROR","errors":[{"code":"VALIDATION_ERROR","message":"Incorrect format of Allegro email","details":"Invalid value: receiver@example.com","path":"resolveHash.email","userMessage":"Incorrect format of Allegro email"}],"shipmentId":null}
