@@ -150,10 +150,13 @@ public class AllegroShipping implements ShippingProvider {
         if (request.parcels().size() != 1) {
             throw new ShippingException(ONE_PACKAGE);
         }
-        ObjectNode input = AllegroShipmentInput.of(proposalForCreation(request), request, labelFormat);
-        ObjectNode command = AllegroJson.object();
-        command.put("commandId", commandId);
-        command.set("input", input);
+        JsonNode proposal = proposalForCreation(request);
+        ObjectNode command = beforeSending("shipment", () -> {
+            ObjectNode built = AllegroJson.object();
+            built.put("commandId", commandId);
+            built.set("input", AllegroShipmentInput.of(proposal, request, labelFormat));
+            return built;
+        });
         try {
             api.post(CREATE_COMMANDS, command);
         } catch (HttpClientException ex) {
@@ -170,6 +173,22 @@ public class AllegroShipping implements ShippingProvider {
             log.warn("Allegro create command {} has an unknown outcome: {}", commandId, ex.getMessage());
         }
         return ShipmentCreation.pending(commandId, null);
+    }
+
+    /**
+     * Builds a request body. Whatever fails here (a missing address, an amount Allegro wrote unexpectedly) happens
+     * before the HTTP call, so it is a refusal with nothing sent, not an unknown outcome.
+     */
+    private static <T> T beforeSending(String what, java.util.function.Supplier<T> build) {
+        try {
+            return build.get();
+        } catch (ShippingException ex) {
+            throw ex;
+        } catch (RuntimeException ex) {
+            log.warn("Could not prepare the Allegro {} request: {}", what, ex.toString());
+            throw new ShippingException("Nie udało się przygotować danych dla Allegro (" + what + ") — nic nie zostało wysłane: "
+                    + (ex.getMessage() != null ? ex.getMessage() : ex.getClass().getSimpleName()));
+        }
     }
 
     /** Nothing is sent before this read, so every failure of it is a refusal the operator may simply retry. */
@@ -352,10 +371,13 @@ public class AllegroShipping implements ShippingProvider {
     @Override
     public List<PickupWindow> pickupWindows(List<String> externalIds, ShipmentAddress pickup, LocalDate readyDate,
                                             int daysAhead) {
-        ObjectNode body = AllegroJson.object();
-        externalIds.forEach(body.putArray("shipmentIds")::add);
-        body.put("readyDate", readyDate.toString());
-        body.set("address", AllegroShipmentInput.address(pickup));
+        ObjectNode body = beforeSending("pickup", () -> {
+            ObjectNode built = AllegroJson.object();
+            externalIds.forEach(built.putArray("shipmentIds")::add);
+            built.put("readyDate", readyDate.toString());
+            built.set("address", AllegroShipmentInput.address(pickup));
+            return built;
+        });
         JsonNode answer;
         try {
             answer = api.post(PICKUP_PROPOSALS, body);
@@ -367,16 +389,19 @@ public class AllegroShipping implements ShippingProvider {
 
     @Override
     public PickupOrder orderPickup(List<String> externalIds, ShipmentAddress pickup, PickupWindow window, String commandId) {
-        String[] times = AllegroPickups.times(window);
-        ObjectNode command = AllegroJson.object();
-        command.put("commandId", commandId);
-        ObjectNode input = command.putObject("input");
-        externalIds.forEach(input.putArray("shipmentIds")::add);
-        ObjectNode pickupTime = input.putObject("pickupTime");
-        pickupTime.put("date", times[0]);
-        pickupTime.put("minTime", times[1]);
-        pickupTime.put("maxTime", times[2]);
-        input.set("address", AllegroShipmentInput.address(pickup));
+        ObjectNode command = beforeSending("pickup", () -> {
+            String[] times = AllegroPickups.times(window);
+            ObjectNode built = AllegroJson.object();
+            built.put("commandId", commandId);
+            ObjectNode input = built.putObject("input");
+            externalIds.forEach(input.putArray("shipmentIds")::add);
+            ObjectNode pickupTime = input.putObject("pickupTime");
+            pickupTime.put("date", times[0]);
+            pickupTime.put("minTime", times[1]);
+            pickupTime.put("maxTime", times[2]);
+            input.set("address", AllegroShipmentInput.address(pickup));
+            return built;
+        });
         try {
             api.post(PICKUP_COMMANDS, command);
         } catch (HttpClientException ex) {

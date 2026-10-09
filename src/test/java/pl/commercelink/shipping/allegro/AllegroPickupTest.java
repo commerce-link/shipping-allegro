@@ -254,4 +254,30 @@ class AllegroPickupTest {
         // when / then
         assertEquals(CommandStatus.PENDING, allegro().checkPickupOrder("pickup-1").status());
     }
+
+    @Test
+    void pickupWindowsWithoutAddressAreARefusalWithoutHttpCauseAndNothingIsSent() {
+        // when
+        ShippingException refusal = assertThrows(ShippingException.class,
+                () -> allegro().pickupWindows(List.of(DPD), null, LocalDate.of(2026, 10, 8), 4));
+
+        // then
+        assertFalse(refusal.getCause() instanceof HttpClientException);
+        verify(restApi, never()).postWithAuthRetry(anyString(), any(), anyMap(), any());
+    }
+
+    @Test
+    void orderPickupWithoutAddressIsARefusalWithoutHttpCauseAndNothingIsSent() {
+        // given
+        PickupWindow window = new PickupWindow(LocalDate.of(2026, 10, 9), LocalTime.of(9, 0), LocalTime.of(17, 0),
+                "2026-10-09|09:00|17:00");
+
+        // when
+        ShippingException refusal = assertThrows(ShippingException.class,
+                () -> allegro().orderPickup(List.of(DPD), null, window, "cmd-1"));
+
+        // then
+        assertFalse(refusal.getCause() instanceof HttpClientException);
+        verify(restApi, never()).postWithAuthRetry(anyString(), any(), anyMap(), any());
+    }
 }

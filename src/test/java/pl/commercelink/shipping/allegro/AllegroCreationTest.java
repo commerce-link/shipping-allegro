@@ -140,8 +140,9 @@ class AllegroCreationTest {
         JsonNode input = sentInput().path("input");
         assertEquals("249.90", input.path("cashOnDelivery").path("amount").asText());
         assertEquals("PLN", input.path("cashOnDelivery").path("currency").asText());
-        assertEquals("PL61109010140000071219812874", input.path("cashOnDelivery").path("iban").asText());
-        assertEquals("Sklep sp. z o.o.", input.path("cashOnDelivery").path("ownerName").asText());
+        assertFalse(input.path("cashOnDelivery").has("iban"));
+        assertFalse(input.path("cashOnDelivery").has("ownerName"));
+        assertEquals(2, input.path("cashOnDelivery").size());
         assertEquals("249.90", input.path("insurance").path("amount").asText());
     }
 
@@ -241,6 +242,53 @@ class AllegroCreationTest {
 
         // then
         assertEquals("601234567", sentInput().path("input").path("sender").path("phone").asText());
+    }
+
+    @Test
+    void cashOnDeliveryErrorAboutIbanIsReportedWithAllegrosWords() {
+        // given: reconstructed sandbox answer for a command that carried an IBAN
+        when(restApi.fetchWithAuthRetry(eq(CREATE + "/cmd-1"), anyMap(), anyMap(), eq(JsonNode.class)))
+                .thenReturn(Recordings.json("create-command-error-cod-iban.json"));
+
+        // when
+        ShipmentCreation failed = allegro(AllegroLabelFormat.PDF_A6).checkShipmentCreation("cmd-1", null);
+
+        // then
+        assertEquals(CommandStatus.FAILED, failed.status());
+        assertTrue(failed.error().contains("nie wymaga podania numeru iban"));
+    }
+
+    @Test
+    void malformedLimitAmountIsARefusalWithoutHttpCauseAndNothingIsSent() {
+        // given
+        JsonNode proposal = Recordings.json("delivery-proposal-dpd.json").deepCopy();
+        ((ObjectNode) proposal.path("deliveryOptions").path(0).path("limits").path("insurance")).put("amount", "abc");
+        when(restApi.fetchWithAuthRetry(eq(AllegroShipping.PROPOSALS + ORDER), anyMap(), anyMap(), eq(JsonNode.class)))
+                .thenReturn(proposal);
+
+        // when
+        ShippingException refusal = assertThrows(ShippingException.class,
+                () -> allegro(AllegroLabelFormat.PDF_A6).createShipment(request(parcel(100)).build(), "cmd-1"));
+
+        // then
+        assertFalse(refusal.getCause() instanceof HttpClientException);
+        verify(restApi, never()).postWithAuthRetry(anyString(), any(), anyMap(), any());
+    }
+
+    @Test
+    void commaDecimalAmountsOfAllegroAreParsed() {
+        assertEquals(new java.math.BigDecimal("15000.00"),
+                AllegroJson.amount(AllegroJson.MAPPER.createObjectNode().put("amount", "15000,00")));
+    }
+
+    @Test
+    void phoneVariantsAreNormalisedToPlus48() {
+        assertEquals("+48600700800", AllegroShipmentInput.phone("+48 600-700-800"));
+        assertEquals("+48600700800", AllegroShipmentInput.phone("(0048) 600 700 800"));
+        assertEquals("+48600700800", AllegroShipmentInput.phone("48600700800"));
+        assertEquals("+48600700800", AllegroShipmentInput.phone("600 700 800"));
+        assertEquals("+420 123 456 789", AllegroShipmentInput.phone("+420 123 456 789"));
+        assertEquals("1234", AllegroShipmentInput.phone("1234"));
     }
 
     @Test

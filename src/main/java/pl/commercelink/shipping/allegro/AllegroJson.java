@@ -27,10 +27,10 @@ final class AllegroJson {
         return value.asText();
     }
 
-    /** An Allegro amount object {"amount": "12.50", "currency": "PLN"} as a number, else null. */
+    /** An Allegro amount object {"amount": "12.50", "currency": "PLN"} as a number (a comma decimal is accepted), else null. */
     static BigDecimal amount(JsonNode amountObject) {
         String amount = text(amountObject, "amount");
-        return amount == null ? null : new BigDecimal(amount);
+        return amount == null ? null : new BigDecimal(amount.strip().replace(',', '.'));
     }
 
     /** An Allegro measure object {"value": 20, "unit": "CENTIMETER"} as a number, else null. */

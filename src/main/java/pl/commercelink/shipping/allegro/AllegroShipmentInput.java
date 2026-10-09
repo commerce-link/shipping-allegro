@@ -10,7 +10,7 @@ import pl.commercelink.shipping.api.ShippingException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.Arrays;
-import java.util.Objects;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
@@ -53,11 +53,9 @@ final class AllegroShipmentInput {
             throw new ShippingException("Pobranie " + cashOnDelivery + " zł przekracza limit metody (" + maxCashOnDelivery + " zł).");
         }
         if (cashOnDelivery != null) {
-            ShipmentRequestCod cod = ShipmentRequestCod.of(request);
-            ObjectNode node = amount(cashOnDelivery, currency);
-            node.put("ownerName", cod.owner());
-            node.put("iban", cod.iban());
-            input.set("cashOnDelivery", node);
+            // amount only: every method WzA ships is an Allegro Delivery one, which pays the collected money out to the
+            // seller's Allegro funds and refuses a command that names an owner or IBAN (sandbox 2026-10-08)
+            input.set("cashOnDelivery", amount(cashOnDelivery, currency));
         } else {
             input.remove("cashOnDelivery");
         }
@@ -106,21 +104,20 @@ final class AllegroShipmentInput {
         return sender(address, null);
     }
 
-    private static final Pattern POLISH_NATIONAL = Pattern.compile("\\d{9}");
+    // +48, 0048 or 48 before the nine digits, or the nine digits alone
+    private static final Pattern POLISH_NUMBER = Pattern.compile("(?:\\+48|0048|48)?(\\d{9})");
 
     /**
      * Allegro refuses a phone without the international prefix (VALIDATION_ERROR on sender.phone and on the pickup
      * address.phone, sandbox 2026-10-08), while shops usually keep Polish numbers as nine digits.
      */
     static String phone(String phone) {
-        if (phone == null || phone.isBlank() || phone.strip().startsWith("+")) {
+        if (phone == null || phone.isBlank()) {
             return phone;
         }
-        String digits = phone.replaceAll("[\\s-]", "");
-        if (digits.startsWith("0048") && POLISH_NATIONAL.matcher(digits.substring(4)).matches()) {
-            return "+48" + digits.substring(4);
-        }
-        return POLISH_NATIONAL.matcher(digits).matches() ? "+48" + digits : phone;
+        String digits = phone.replaceAll("[\\s\\-()]", "");
+        Matcher polish = POLISH_NUMBER.matcher(digits);
+        return polish.matches() ? "+48" + polish.group(1) : phone;
     }
 
     private static void putIfPresent(ObjectNode node, String field, String value) {
@@ -196,13 +193,5 @@ final class AllegroShipmentInput {
 
     private static String plain(BigDecimal value) {
         return value.stripTrailingZeros().toPlainString();
-    }
-
-    /** Owner and IBAN of the cash on delivery from the request. */
-    private record ShipmentRequestCod(String owner, String iban) {
-        static ShipmentRequestCod of(ShipmentRequest request) {
-            var cod = Objects.requireNonNull(request.options().cashOnDelivery());
-            return new ShipmentRequestCod(cod.accountHolder(), cod.iban());
-        }
     }
 }

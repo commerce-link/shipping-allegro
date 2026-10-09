@@ -1,0 +1,1 @@
+{"commandId":"c5b8a1f0-0000-4000-8000-000000000001","status":"ERROR","errors":[{"code":"INVALID_COD_IBAN","message":"The selected delivery method does not require an IBAN","details":"","path":"input.cashOnDelivery.iban","userMessage":"Wybrana metoda dostawy nie wymaga podania numeru iban, wpłatę za przesyłki pobraniowe prześlemy na Twoje środki"}],"shipmentId":null}

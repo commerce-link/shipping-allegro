@@ -21,6 +21,7 @@ structure are as Allegro sent them.
 | `create-command-in-progress.json`, `create-command-error-postcode.json` | a create command right after it was sent, then its error (made-up buyer post code) |
 | `create-command-error-phone.json` | sender phone without the `+48` prefix |
 | `pickup-proposals-phone-without-prefix.json` | HTTP 400 body: pickup address phone without the `+48` prefix |
+| `create-command-error-cod-iban.json` | reconstructed from the userMessage seen on the sandbox (code `INVALID_COD_IBAN` and the other fields are guessed): "Allegro Kurier DPD pobranie (AD)" refuses a `cashOnDelivery` with `ownerName`/`iban`; the same command without them succeeds |
 | `create-command-error-inpost-credentials.json` | Allegro InPost methods: the seller has no InPost account linked |
 | `create-command-duplicate.json` | body of the **HTTP 400** `COMMAND_EXISTS` for a create command id sent twice (cancel commands answer the same; used for pickup commands too) |
 | `shipment-one.json` | One by Allegro shipment `dde12f96-…`, waybill `A0000ADF87` |
