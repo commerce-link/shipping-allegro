@@ -1,0 +1,13 @@
+{
+ "id": "3daafd00-c31d-11f1-ac0d-1b8fc439c8a2",
+ "payment": {
+  "type": "ONLINE"
+ },
+ "delivery": {
+  "method": {
+   "id": "03f26351-f683-4db2-8895-f2c599280e3c",
+   "name": "Allegro Kurier DPD (AD)"
+  },
+  "pickupPoint": null
+ }
+}

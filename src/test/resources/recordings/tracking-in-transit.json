@@ -1,0 +1,4 @@
+{"carrierId":"ALLEGRO","waybills":[{"waybill":"AD0W4SGTFDS2NWKJW","trackingDetails":{
+  "statuses":[{"occurredAt":"2026-10-09T15:02:00Z","code":"IN_TRANSIT"},
+              {"occurredAt":"2026-10-09T08:00:00Z","code":"PENDING"}],
+  "createdAt":"2026-10-09T08:00:00Z","updatedAt":"2026-10-09T15:02:00Z"}}]}

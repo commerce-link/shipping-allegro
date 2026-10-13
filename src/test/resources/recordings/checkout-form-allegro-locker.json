@@ -1,0 +1,23 @@
+{
+ "id": "87e369f0-c31a-11f1-ac0d-1b8fc439c8a2",
+ "payment": {
+  "type": "ONLINE"
+ },
+ "delivery": {
+  "method": {
+   "id": "2488f7b7-5d1c-4d65-b85c-4cbcf253fd93",
+   "name": "Allegro Paczkomaty InPost"
+  },
+  "pickupPoint": {
+   "id": "WRO226M",
+   "name": "Paczkomat WRO226M",
+   "description": "Przejście w budynku",
+   "address": {
+    "street": "Legnicka 23/25",
+    "zipCode": "53-673",
+    "city": "Wrocław",
+    "countryCode": "PL"
+   }
+  }
+ }
+}

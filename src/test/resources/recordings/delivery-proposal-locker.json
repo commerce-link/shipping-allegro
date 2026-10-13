@@ -1,0 +1,262 @@
+{
+ "orderId": "87e369f0-c31a-11f1-ac0d-1b8fc439c8a2",
+ "suggestedInput": {
+  "deliveryMethodId": null,
+  "credentialsId": null,
+  "sender": {
+   "name": "",
+   "company": "Testowa spółka",
+   "street": "ul. Testowa",
+   "postalCode": "55-555",
+   "city": "Wrocław",
+   "state": null,
+   "countryCode": "PL",
+   "email": "sklep@example.com",
+   "phone": "+48500600701",
+   "point": null
+  },
+  "receiver": {
+   "name": "Jan Test",
+   "company": null,
+   "street": "Testowa 22",
+   "postalCode": "55-555",
+   "city": "Wrocław",
+   "state": null,
+   "countryCode": "PL",
+   "email": "x7k2m9p4qa+1a2b3c4d5@user.allegrogroup.pl",
+   "phone": "+48500600701",
+   "point": "WRO226M"
+  },
+  "referenceNumber": null,
+  "packages": [
+   {
+    "type": "PACKAGE",
+    "length": {
+     "value": 1,
+     "unit": "CENTIMETER"
+    },
+    "width": {
+     "value": 1,
+     "unit": "CENTIMETER"
+    },
+    "height": {
+     "value": 1,
+     "unit": "CENTIMETER"
+    },
+    "weight": {
+     "value": 1,
+     "unit": "KILOGRAMS"
+    },
+    "textOnLabel": null
+   }
+  ],
+  "insurance": {
+   "amount": "49.99",
+   "currency": "PLN"
+  },
+  "cashOnDelivery": null,
+  "labelFormat": "PDF",
+  "additionalServices": [],
+  "additionalProperties": {}
+ },
+ "deliveryOptions": [
+  {
+   "deliveryType": "APM",
+   "paymentType": "PREPAID",
+   "packageType": "PACKAGE",
+   "originCountry": "PL",
+   "destinationCountry": "PL",
+   "limits": {
+    "cashOnDelivery": null,
+    "insurance": {
+     "amount": "20000",
+     "currency": "PLN"
+    },
+    "dimensions": {
+     "length": {
+      "value": 64,
+      "unit": "CENTIMETER"
+     },
+     "width": {
+      "value": 38,
+      "unit": "CENTIMETER"
+     },
+     "height": {
+      "value": 41,
+      "unit": "CENTIMETER"
+     }
+    },
+    "weight": {
+     "value": 25,
+     "unit": "KILOGRAMS"
+    }
+   },
+   "additionalServices": [
+    {
+     "id": "sendingAtPoint",
+     "name": "Parcel dispatch at point",
+     "description": ""
+    }
+   ],
+   "additionalProperties": [
+    {
+     "id": "inpost#sendingMethod",
+     "name": "Dispatch method",
+     "description": "Dispatch method of a shipment created in InPost, possible values: parcel_locker, pop, any_point, dispatch_order. More information: https://developer.allegro.pl/tutorials/jak-zarzadzac-przesylkami-przez-wysylam-z-allegro-LRVjK7K21sY#jak-utworzyc-nowa-paczke",
+     "readOnly": false,
+     "required": false
+    }
+   ]
+  },
+  {
+   "deliveryType": "PUDO",
+   "paymentType": "PREPAID",
+   "packageType": "PACKAGE",
+   "originCountry": "PL",
+   "destinationCountry": "PL",
+   "limits": {
+    "cashOnDelivery": null,
+    "insurance": {
+     "amount": "20000",
+     "currency": "PLN"
+    },
+    "dimensions": {
+     "length": {
+      "value": 64,
+      "unit": "CENTIMETER"
+     },
+     "width": {
+      "value": 38,
+      "unit": "CENTIMETER"
+     },
+     "height": {
+      "value": 41,
+      "unit": "CENTIMETER"
+     }
+    },
+    "weight": {
+     "value": 25,
+     "unit": "KILOGRAMS"
+    }
+   },
+   "additionalServices": [
+    {
+     "id": "sendingAtPoint",
+     "name": "Parcel dispatch at point",
+     "description": ""
+    }
+   ],
+   "additionalProperties": [
+    {
+     "id": "inpost#sendingMethod",
+     "name": "Dispatch method",
+     "description": "Dispatch method of a shipment created in InPost, possible values: parcel_locker, pop, any_point, dispatch_order. More information: https://developer.allegro.pl/tutorials/jak-zarzadzac-przesylkami-przez-wysylam-z-allegro-LRVjK7K21sY#jak-utworzyc-nowa-paczke",
+     "readOnly": false,
+     "required": false
+    }
+   ]
+  },
+  {
+   "deliveryType": "APM",
+   "paymentType": "POSTPAID",
+   "packageType": "PACKAGE",
+   "originCountry": "PL",
+   "destinationCountry": "PL",
+   "limits": {
+    "cashOnDelivery": {
+     "amount": "5000",
+     "currency": "PLN"
+    },
+    "insurance": {
+     "amount": "20000",
+     "currency": "PLN"
+    },
+    "dimensions": {
+     "length": {
+      "value": 64,
+      "unit": "CENTIMETER"
+     },
+     "width": {
+      "value": 38,
+      "unit": "CENTIMETER"
+     },
+     "height": {
+      "value": 41,
+      "unit": "CENTIMETER"
+     }
+    },
+    "weight": {
+     "value": 25,
+     "unit": "KILOGRAMS"
+    }
+   },
+   "additionalServices": [
+    {
+     "id": "sendingAtPoint",
+     "name": "Parcel dispatch at point",
+     "description": ""
+    }
+   ],
+   "additionalProperties": [
+    {
+     "id": "inpost#sendingMethod",
+     "name": "Dispatch method",
+     "description": "Dispatch method of a shipment created in InPost, possible values: parcel_locker, pop, any_point, dispatch_order. More information: https://developer.allegro.pl/tutorials/jak-zarzadzac-przesylkami-przez-wysylam-z-allegro-LRVjK7K21sY#jak-utworzyc-nowa-paczke",
+     "readOnly": false,
+     "required": false
+    }
+   ]
+  },
+  {
+   "deliveryType": "PUDO",
+   "paymentType": "POSTPAID",
+   "packageType": "PACKAGE",
+   "originCountry": "PL",
+   "destinationCountry": "PL",
+   "limits": {
+    "cashOnDelivery": {
+     "amount": "5000",
+     "currency": "PLN"
+    },
+    "insurance": {
+     "amount": "20000",
+     "currency": "PLN"
+    },
+    "dimensions": {
+     "length": {
+      "value": 64,
+      "unit": "CENTIMETER"
+     },
+     "width": {
+      "value": 38,
+      "unit": "CENTIMETER"
+     },
+     "height": {
+      "value": 41,
+      "unit": "CENTIMETER"
+     }
+    },
+    "weight": {
+     "value": 25,
+     "unit": "KILOGRAMS"
+    }
+   },
+   "additionalServices": [
+    {
+     "id": "sendingAtPoint",
+     "name": "Parcel dispatch at point",
+     "description": ""
+    }
+   ],
+   "additionalProperties": [
+    {
+     "id": "inpost#sendingMethod",
+     "name": "Dispatch method",
+     "description": "Dispatch method of a shipment created in InPost, possible values: parcel_locker, pop, any_point, dispatch_order. More information: https://developer.allegro.pl/tutorials/jak-zarzadzac-przesylkami-przez-wysylam-z-allegro-LRVjK7K21sY#jak-utworzyc-nowa-paczke",
+     "readOnly": false,
+     "required": false
+    }
+   ]
+  }
+ ]
+}

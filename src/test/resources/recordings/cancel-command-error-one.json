@@ -1,0 +1,1 @@
+{"commandId":"03b60db7-89e2-4ecd-8ae5-2a60153de498","status":"ERROR","errors":[{"code":"BAD_REQUEST","message":"You cannot cancel a shipment with the Allegro carrier","details":"","path":"shipmentId","userMessage":"Nie można anulować przesyłki u przewoźnika Allegro"}],"shipmentId":null}

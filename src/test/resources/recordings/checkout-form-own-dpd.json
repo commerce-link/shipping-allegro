@@ -1,0 +1,10 @@
+{
+ "id": "1011eb90-ab96-11f1-aadf-5bea540d4ae5",
+ "delivery": {
+  "method": {
+   "id": "c3066682-97a3-42fe-9eb5-9bb2978cf293",
+   "name": "Kurier DPD"
+  },
+  "pickupPoint": null
+ }
+}

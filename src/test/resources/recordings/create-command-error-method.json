@@ -1,0 +1,1 @@
+{"commandId":"908445d5-57d4-419e-b46c-df8a9369b8d5","status":"ERROR","errors":[{"code":"METHOD_CANNOT_HANDLE_ORDER","message":"This delivery option cannot support this order.","details":"Delivery method cannot handle the order","path":"deliveryMethodId","userMessage":"This delivery option cannot support this order."}],"shipmentId":null}

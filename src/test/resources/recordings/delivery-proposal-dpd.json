@@ -1,0 +1,177 @@
+{
+ "orderId": "3daafd00-c31d-11f1-ac0d-1b8fc439c8a2",
+ "suggestedInput": {
+  "deliveryMethodId": null,
+  "credentialsId": null,
+  "sender": {
+   "name": "",
+   "company": "Testowa spółka",
+   "street": "ul. Testowa",
+   "postalCode": "55-555",
+   "city": "Wrocław",
+   "state": null,
+   "countryCode": "PL",
+   "email": "sklep@example.com",
+   "phone": "+48500600701",
+   "point": null
+  },
+  "receiver": {
+   "name": "Jan Test",
+   "company": null,
+   "street": "Rynek 1",
+   "postalCode": "50-106",
+   "city": "Wrocław",
+   "state": null,
+   "countryCode": "PL",
+   "email": "x7k2m9p4qa+1a2b3c4d5@user.allegrogroup.pl",
+   "phone": "+48500600701",
+   "point": null
+  },
+  "referenceNumber": null,
+  "packages": [
+   {
+    "type": "PACKAGE",
+    "length": {
+     "value": 1,
+     "unit": "CENTIMETER"
+    },
+    "width": {
+     "value": 1,
+     "unit": "CENTIMETER"
+    },
+    "height": {
+     "value": 1,
+     "unit": "CENTIMETER"
+    },
+    "weight": {
+     "value": 1,
+     "unit": "KILOGRAMS"
+    },
+    "textOnLabel": null
+   }
+  ],
+  "insurance": {
+   "amount": "49.99",
+   "currency": "PLN"
+  },
+  "cashOnDelivery": null,
+  "labelFormat": "PDF",
+  "additionalServices": [],
+  "additionalProperties": {}
+ },
+ "deliveryOptions": [
+  {
+   "deliveryType": "DOOR",
+   "paymentType": "PREPAID",
+   "packageType": "PACKAGE",
+   "originCountry": "PL",
+   "destinationCountry": "PL",
+   "limits": {
+    "cashOnDelivery": null,
+    "insurance": {
+     "amount": "15000",
+     "currency": "PLN"
+    },
+    "dimensions": {
+     "length": {
+      "value": 150,
+      "unit": "CENTIMETER"
+     },
+     "width": {
+      "value": 150,
+      "unit": "CENTIMETER"
+     },
+     "height": {
+      "value": 150,
+      "unit": "CENTIMETER"
+     }
+    },
+    "weight": {
+     "value": 300,
+     "unit": "KILOGRAMS"
+    }
+   },
+   "additionalServices": [
+    {
+     "id": "additionalHandling",
+     "name": "Non-standard parcel.",
+     "description": "A parcel with a shape that is not cuboidal (e.g., a tire, a tube) or one wrapped in stretch, foil, or other material that makes it difficult to move."
+    }
+   ],
+   "additionalProperties": [
+    {
+     "id": "EXTERNAL_CARRIER_WAYBILL",
+     "name": "External carrier's consignment note number",
+     "description": "Consignment note number attached to the shipment by external carrier",
+     "readOnly": true,
+     "required": false
+    },
+    {
+     "id": "FIRST_MILE_CARRIER",
+     "name": "First mile carrier",
+     "description": "Carrier responsible for first mile handling of the shipment",
+     "readOnly": true,
+     "required": false
+    }
+   ]
+  },
+  {
+   "deliveryType": "DOOR",
+   "paymentType": "POSTPAID",
+   "packageType": "PACKAGE",
+   "originCountry": "PL",
+   "destinationCountry": "PL",
+   "limits": {
+    "cashOnDelivery": {
+     "amount": "6000",
+     "currency": "PLN"
+    },
+    "insurance": {
+     "amount": "15000",
+     "currency": "PLN"
+    },
+    "dimensions": {
+     "length": {
+      "value": 150,
+      "unit": "CENTIMETER"
+     },
+     "width": {
+      "value": 150,
+      "unit": "CENTIMETER"
+     },
+     "height": {
+      "value": 150,
+      "unit": "CENTIMETER"
+     }
+    },
+    "weight": {
+     "value": 300,
+     "unit": "KILOGRAMS"
+    }
+   },
+   "additionalServices": [
+    {
+     "id": "additionalHandling",
+     "name": "Non-standard parcel.",
+     "description": "A parcel with a shape that is not cuboidal (e.g., a tire, a tube) or one wrapped in stretch, foil, or other material that makes it difficult to move."
+    }
+   ],
+   "additionalProperties": [
+    {
+     "id": "EXTERNAL_CARRIER_WAYBILL",
+     "name": "External carrier's consignment note number",
+     "description": "Consignment note number attached to the shipment by external carrier",
+     "readOnly": true,
+     "required": false
+    },
+    {
+     "id": "FIRST_MILE_CARRIER",
+     "name": "First mile carrier",
+     "description": "Carrier responsible for first mile handling of the shipment",
+     "readOnly": true,
+     "required": false
+    }
+   ]
+  }
+ ]
+}
